@@ -64,6 +64,7 @@ public class RemoteService extends AccessibilityService {
     private final java.util.Map<String, Long> lastRequest = new java.util.concurrent.ConcurrentHashMap<>();
     private byte[] lastShot;
     private long lastShotAt;
+    private int lastShotWidth;
     private Pairing pairing;
     private View pinView;
     private View qrCard;
@@ -452,10 +453,12 @@ public class RemoteService extends AccessibilityService {
      * A JPEG of what is on screen, at most 640 px wide (Android 11+, and only while the owner allows it). Apps that
      * protect their picture (most paid video) come out black. At most one new picture per second for all phones.
      */
-    byte[] screenshot() {
+    byte[] screenshot(int width) {
         if (android.os.Build.VERSION.SDK_INT < 30 || !previewAllowed(this)) return null;
+        final int w = Math.max(320, Math.min(1280, width));
         synchronized (this) {
-            if (lastShot != null && SystemClock.elapsedRealtime() - lastShotAt < 1000) return lastShot;
+            // Android allows an accessibility screenshot about every third of a second; phones share them.
+            if (lastShot != null && lastShotWidth >= w && SystemClock.elapsedRealtime() - lastShotAt < 340) return lastShot;
         }
         final byte[][] result = new byte[1][];
         final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
@@ -466,11 +469,11 @@ public class RemoteService extends AccessibilityService {
                         Bitmap hw = Bitmap.wrapHardwareBuffer(shot.getHardwareBuffer(), shot.getColorSpace());
                         shot.getHardwareBuffer().close();
                         if (hw != null) {
-                            float scale = Math.min(1f, 640f / hw.getWidth());
+                            float scale = Math.min(1f, (float) w / hw.getWidth());
                             Bitmap small = Bitmap.createScaledBitmap(hw.copy(Bitmap.Config.ARGB_8888, false),
                                     Math.round(hw.getWidth() * scale), Math.round(hw.getHeight() * scale), true);
                             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-                            small.compress(Bitmap.CompressFormat.JPEG, 60, out);
+                            small.compress(Bitmap.CompressFormat.JPEG, w > 700 ? 70 : 60, out);
                             result[0] = out.toByteArray();
                         }
                     } catch (RuntimeException broken) {
@@ -489,6 +492,7 @@ public class RemoteService extends AccessibilityService {
         synchronized (this) {
             if (result[0] != null) {
                 lastShot = result[0];
+                lastShotWidth = w;
                 lastShotAt = SystemClock.elapsedRealtime();
             }
             return result[0] != null ? result[0] : lastShot;

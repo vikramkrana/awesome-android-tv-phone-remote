@@ -295,7 +295,8 @@ final class WebServer {
                 return;
             }
             case "/api/screen": {
-                byte[] jpeg = service.screenshot();
+                int w = parseInt(param(query, "w"));
+                byte[] jpeg = service.screenshot(w > 0 ? w : 640);
                 if (jpeg == null) respond(out, 409, "text/plain", "no preview");
                 else respond(out, 200, "image/jpeg", jpeg);
                 return;

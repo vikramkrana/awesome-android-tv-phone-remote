@@ -224,6 +224,11 @@
   #padWrap { position: relative; }
   .modeBtn { position: absolute; right: 2px; bottom: 0; width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent; color: var(--faint); display: flex; align-items: center; justify-content: center; z-index: 3; }
   .modeBtn.down { background: rgba(255,255,255,.1); color: var(--text); }
+  /* Full-screen preview: fills the screen; held upright, the picture turns sideways to use the whole phone. */
+  #viewer { position: fixed; inset: 0; z-index: 50; background: #000; display: flex; align-items: center; justify-content: center; }
+  #viewerImg { max-width: 100vw; max-height: 100vh; object-fit: contain; }
+  @media (orientation: portrait) { #viewerImg { max-width: 100vh; max-height: 100vw; transform: rotate(90deg); } }
+  #viewerClose { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 12px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
@@ -385,8 +390,8 @@
     </div>
 
     <div id="prevWrap" class="hidden">
-      <div class="label">On screen</div>
-      <img class="preview" id="prevImg" alt="What the {{kind}} shows">
+      <div class="label">On screen <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)">· tap for full screen</span></div>
+      <img class="preview press" id="prevImg" alt="What the {{kind}} shows">
     </div>
 
     <div id="volWrap" class="hidden">
@@ -478,6 +483,10 @@
   </form>
 </div>
 
+<div id="viewer" class="hidden" role="dialog" aria-label="Screen preview">
+  <img id="viewerImg" alt="What the {{kind}} shows">
+  <button id="viewerClose" aria-label="Close"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M5 5l12 12M17 5L5 17"/></svg></button>
+</div>
 <div id="toast" role="status"></div>
 
 <script>
@@ -943,20 +952,30 @@
     } catch (e) {}
   }));
   // The screen picture, while this tab is open and the owner allows it.
-  let previewOn = false;
+  // As fast as the device allows (about three pictures a second), sharper while full screen.
+  let previewOn = false, fullView = false;
   async function previewLoop() {
     if (previewOn) return; previewOn = true;
-    while (current === "proj" && state.preview && token) {
+    while ((current === "proj" || fullView) && state.preview && token) {
+      const started = Date.now();
       if (!document.hidden) {
         try {
-          const r = await api("/api/screen");
-          if (r.ok) { const img = $("prevImg"), old = img.src; img.src = URL.createObjectURL(await r.blob()); if (old.startsWith("blob:")) URL.revokeObjectURL(old); }
+          const r = await api("/api/screen?w=" + (fullView ? 1280 : 640));
+          if (r.ok) {
+            const url = URL.createObjectURL(await r.blob()), old = $("prevImg").src;
+            $("prevImg").src = url; if (fullView) $("viewerImg").src = url;
+            if (old.startsWith("blob:")) setTimeout(() => URL.revokeObjectURL(old), 1000);
+          }
         } catch (e) {}
       }
-      await new Promise((res) => setTimeout(res, 1500));
+      await new Promise((res) => setTimeout(res, Math.max(60, 350 - (Date.now() - started))));
     }
     previewOn = false;
   }
+  $("prevImg").addEventListener("click", () => {
+    fullView = true; $("viewerImg").src = $("prevImg").src; $("viewer").classList.remove("hidden"); previewLoop();
+  });
+  $("viewerClose").onclick = () => { fullView = false; $("viewer").classList.add("hidden"); };
 
   // ---- apps tab ----------------------------------------------------------------------------------------------------
   function renderApps() {
