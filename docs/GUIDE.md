@@ -122,7 +122,7 @@ browser has cleared its saved data.
 | Ring | Up, down, left, right: the whole quarter of the ring counts. Hold to repeat. **OK** in the middle. |
 | ☝ (beside the ring) | Switch between the ring and the touchpad. |
 | ↩ · ⏯ · ⌂ | Back, play/pause, Home. |
-| Bottom row | Your four quick apps, icon and name. The one that is open now has a gold outline. |
+| Bottom row | Your four quick apps, icon and name. The one that is open now has a gold outline. Press and hold one to choose which four. |
 
 Rewind and forward, all apps and the device's settings moved to the Projector/TV and Apps tabs.
 

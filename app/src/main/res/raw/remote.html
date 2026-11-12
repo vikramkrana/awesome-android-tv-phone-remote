@@ -233,6 +233,7 @@
   #picker { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.5); padding: calc(env(safe-area-inset-top) + 70px) 18px 0; }
   #picker .card { max-width: 404px; margin: 0 auto; }
   #picker .item { color: inherit; text-decoration: none; }
+  .qa { -webkit-touch-callout: none; }
 </style>
 </head>
 <body>
@@ -863,7 +864,12 @@
       b.appendChild(imgFor(pkg));
       const l = document.createElement("span"); l.className = "lbl"; l.textContent = labelOf(pkg); b.appendChild(l);
       if (now) b.appendChild(eq());
-      b.onclick = () => launch(pkg);
+      // Press and hold: choose the quick apps (the same as Apps → Edit quick apps).
+      let held = false, timer = null;
+      b.addEventListener("pointerdown", () => { held = false; timer = setTimeout(() => { held = true; haptic(); openQuickEditor(); }, 550); });
+      for (const ev of ["pointerup", "pointercancel", "pointerleave"]) b.addEventListener(ev, () => clearTimeout(timer));
+      b.addEventListener("contextmenu", (e) => e.preventDefault());
+      b.onclick = () => { if (!held) launch(pkg); };
       box.appendChild(b);
     }
   }
@@ -1019,6 +1025,7 @@
     }
   }
   $("editQuick").onclick = () => { editing = !editing; renderApps(); };
+  function openQuickEditor() { editing = true; show("apps"); toast("Tap apps to choose your four quick apps"); }
 
   // ---- keyboard / voice / search sheet -----------------------------------------------------------------------------
   let mode = "type";
