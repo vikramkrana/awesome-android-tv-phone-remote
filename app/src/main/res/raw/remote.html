@@ -229,6 +229,10 @@
   #viewerImg { max-width: 100vw; max-height: 100vh; object-fit: contain; }
   @media (orientation: portrait) { #viewerImg { max-width: 100vh; max-height: 100vw; transform: rotate(90deg); } }
   #viewerClose { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 12px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
+  /* Screen picker: drops from the name pill when more than one device runs the remote. */
+  #picker { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.5); padding: calc(env(safe-area-inset-top) + 70px) 18px 0; }
+  #picker .card { max-width: 404px; margin: 0 auto; }
+  #picker .item { color: inherit; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -483,6 +487,9 @@
   </form>
 </div>
 
+<div id="picker" class="hidden" role="dialog" aria-label="Choose a screen">
+  <div class="card"><div class="label" style="margin:2px 4px 6px">Screens on this Wi-Fi</div><div class="list" id="pickList"></div></div>
+</div>
 <div id="viewer" class="hidden" role="dialog" aria-label="Screen preview">
   <img id="viewerImg" alt="What the {{kind}} shows">
   <button id="viewerClose" aria-label="Close"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M5 5l12 12M17 5L5 17"/></svg></button>
@@ -1147,7 +1154,23 @@
     if (!confirm("Unpair this phone? You can pair again by scanning the QR on the {{kind}}.")) return;
     signedFetch("/api/unpair", "").catch(() => {}).finally(() => unpaired("Unpaired. Scan the QR on the {{kind}} or use a PIN to pair again."));
   };
-  $("devPill").onclick = () => show("proj");
+  // One screen: the pill opens its tab. Several: a picker; the others are their own pages (pair once on each).
+  $("devPill").onclick = () => {
+    const others = state.others || [];
+    if (!others.length) return show("proj");
+    const list = $("pickList"); list.innerHTML = "";
+    const row = (name, sub, href, mine) => {
+      const a = document.createElement(href ? "a" : "button"); a.className = "item press";
+      if (href) a.href = href; else a.onclick = () => { $("picker").classList.add("hidden"); show("proj"); };
+      a.innerHTML = '<svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-proj"/></svg><div class="grow"><span></span><small></small></div>'
+        + (mine ? '<svg width="18" height="18" fill="none" stroke="#34C759" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>' : "");
+      a.querySelector("span").textContent = name; a.querySelector("small").textContent = sub; list.appendChild(a);
+    };
+    row(state.name, "This one · open its tab", null, true);
+    for (const o of others) row(o.name, o.url.replace(/^http:\/\/|\/$/g, ""), o.url + "#pair", false);
+    $("picker").classList.remove("hidden");
+  };
+  $("picker").addEventListener("click", (e) => { if (e.target.id === "picker") $("picker").classList.add("hidden"); });
   // Sleep: a second tap within 3 s confirms, so a stray tap never switches the picture off.
   let sleepArmed = 0;
   $("sleepBtn").onclick = async () => {

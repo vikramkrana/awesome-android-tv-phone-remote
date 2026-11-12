@@ -66,6 +66,7 @@ AFTER = """<script>
     projector: () => click("nav [data-tab=proj]"),
     settings: () => click("nav [data-tab=settings]"),
     guest: () => click("nav [data-tab=settings]"),
+    screens: () => setTimeout(() => click("#devPill"), 300),
     search: () => click("[data-sheet=search]"),
     type: () => click("[data-sheet=type]"),
     lost: () => { window.__cut = true; document.dispatchEvent(new Event("visibilitychange")); },

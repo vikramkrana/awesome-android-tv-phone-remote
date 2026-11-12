@@ -8,7 +8,8 @@ From a fresh APK to a working remote, then every screen in turn.
 - [4. Keep it on the phone's Home Screen](#4-keep-it-on-the-phones-home-screen)
 - [5. The screens on the phone](#5-the-screens-on-the-phone)
 - [6. The screens on the projector or TV](#6-the-screens-on-the-projector-or-tv)
-- [7. More phones, removing phones](#7-more-phones-removing-phones)
+- [7. Several TVs and projectors](#7-several-tvs-and-projectors)
+- [8. More phones, removing phones](#8-more-phones-removing-phones)
 
 ## 1. Install on the projector or TV
 
@@ -115,7 +116,7 @@ browser has cleared its saved data.
 | Control | Does |
 |---|---|
 | ⏻ (top left) | Sleep: tap twice. Wake the device with its own remote. |
-| Name pill (top) | Green dot = connected. Tap for the Projector/TV tab. |
+| Name pill (top) | Green dot = connected. Tap for the Projector/TV tab; with more than one device on the Wi-Fi, a list to switch between them. |
 | 🔍 | Type into the open app, or search YouTube from Home. Switch between the two in the sheet. |
 | 🔇 · **− VOL +** · 🎤 | Mute, volume (hold to keep changing), speak. |
 | Ring | Up, down, left, right: the whole quarter of the ring counts. Hold to repeat. **OK** in the middle. |
@@ -248,7 +249,19 @@ Left: the QR code, how to pair, and whether the remote is ready (green), waiting
 - **Diagnostics:** the same report the phones can copy.
 - **About:** version, credits, licences.
 
-## 7. More phones, removing phones
+## 7. Several TVs and projectors
+
+Install the app on each one. On the same Wi-Fi they find each other: tap the name pill at the top of the Remote
+tab and pick a screen. The first time on each device, pair with that device's PIN; after that switching asks
+nothing. Each device keeps its own phones, guests and limit.
+
+<img src="screens/phone-screens.png" width="240" alt="Choosing a screen">
+
+On iPhone, a Home Screen icon belongs to one device: add one per device ("Living room", "Bedroom"). Switching from
+inside an icon opens the other device in a Safari sheet. Networks that block Bonjour (many guest networks) do not
+list the other devices; scanning that device's QR works anyway.
+
+## 8. More phones, removing phones
 
 - **Another phone:** scan the same QR code. Each phone gets its own name ("iPhone", "iPhone 2", …). Up to the
   **Phone limit** (5 unless you change it). When it is reached, the Home card and the Phone Remote screen say

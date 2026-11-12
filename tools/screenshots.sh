@@ -15,7 +15,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null || true' EXIT
 sleep 1
 
-for scene in pair pin done remote touchpad mouse apps edit projector settings guest search type lost; do
+for scene in pair pin done remote touchpad mouse apps edit projector settings guest screens search type lost; do
   PROFILE="$(mktemp -d)"
   "$CHROME" --headless=new --disable-gpu --hide-scrollbars --no-first-run --user-data-dir="$PROFILE" \
     --window-size=390,844 --force-device-scale-factor=2 --user-agent="$UA" \
