@@ -14,6 +14,7 @@
 | The phone asks for a PIN again | The device got a new address (other network, or the router handed out another one): to the browser that is a new site. Pair once more, and give the device a fixed address in your router (DHCP reservation). Also happens if the phone was removed on the device, or in a private browsing tab. |
 | iPhone Home Screen icon asks for a PIN | The icon was added when "You're connected" was not on screen. Pair it once, or delete the icon and add it again from **Settings → Add to Home Screen**. |
 | "Can't reach …" | The device is off, asleep with Wi-Fi off, or on another network. The page retries by itself. |
+| Blank screen when opening the remote | The device is off (or on another network). The remote's page comes from the device itself, and a page from a home device (plain HTTP) cannot be kept offline on the phone. Switch the device on, wait until its Home screen shows, then open the remote again. |
 | The same phone is listed twice | Two browsers on one phone (Safari and Chrome) are two phones to the device. Remove the one you do not use. |
 
 ## Buttons

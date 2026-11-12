@@ -667,12 +667,17 @@
 
   // ---- network ---------------------------------------------------------------------------------------------------
   let online = true;
+  // A switched-off device does not refuse, it just never answers: give up after a few seconds so the page says
+  // "Can't reach" instead of showing a remote that does nothing for a minute.
+  function deadline(ms) {
+    const c = new AbortController(); setTimeout(() => c.abort(), ms || 5000); return c.signal;
+  }
   async function signedFetch(path, body) {
     const k = keys();
-    if (!epoch) epoch = await fetch("/api/hello", { method: "POST" }).then((r) => r.text());
+    if (!epoch) epoch = await fetch("/api/hello", { method: "POST", signal: deadline() }).then((r) => r.text());
     const ctr = nextCtr();
     const sig = hmac(k.key, utf8(epoch + "\n" + ctr + "\n" + path + "\n" + body));
-    return fetch(path, { method: "POST", headers: { "X-Key": k.id, "X-Ctr": ctr, "X-Sig": sig }, body });
+    return fetch(path, { method: "POST", headers: { "X-Key": k.id, "X-Ctr": ctr, "X-Sig": sig }, body, signal: deadline() });
   }
   async function api(path, body) {
     if (!token) throw new Error("unpaired");
@@ -1332,6 +1337,8 @@
   // Keeps the projector's "Connected now" and this page's "now playing" fresh while open.
   setInterval(() => { if (token && !document.hidden && online) refresh().catch(() => {}); }, 5000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden && token) refresh().catch(() => {}); });
+  // Back to an iPhone Home Screen app or a tab restored from memory: check at once whether the device is still there.
+  window.addEventListener("pageshow", (e) => { if (e.persisted && token) refresh().catch(() => {}); });
 })();
 </script>
 </body>
