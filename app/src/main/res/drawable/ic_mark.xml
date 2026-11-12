@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's mark, on a transparent ground: a screen, the signal reaching it, and the remote's own round dial.
+     One source for the launcher icon, the TV banner and the phone's Home Screen icon (WebServer draws it to PNG). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="192dp" android:height="192dp"
+    android:viewportWidth="192" android:viewportHeight="192">
+    <!-- screen -->
+    <path
+        android:pathData="M42,32 H150 a12,12 0 0 1 12,12 V104 a12,12 0 0 1 -12,12 H42 a12,12 0 0 1 -12,-12 V44 a12,12 0 0 1 12,-12 Z"
+        android:strokeColor="#FF8E9099" android:strokeWidth="7" android:strokeLineJoin="round" />
+    <!-- signal -->
+    <path android:pathData="M74.7,69.1 A26,26 0 0 1 117.3,69.1"
+        android:strokeColor="#FFF4F2F8" android:strokeWidth="6.5" android:strokeLineCap="round" />
+    <path android:pathData="M84.5,78 A14,14 0 0 1 107.5,78"
+        android:strokeColor="#FFF4F2F8" android:strokeWidth="6.5" android:strokeLineCap="round" />
+    <!-- dial: a dark rim cuts it out of the screen's edge -->
+    <path android:pathData="M48,130 a48,48 0 1 0 96,0 a48,48 0 1 0 -96,0 Z" android:fillColor="#FF141416" />
+    <path android:pathData="M55,130 a41,41 0 1 0 82,0 a41,41 0 1 0 -82,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="68" android:startY="92" android:endX="126" android:endY="168">
+                <item android:offset="0" android:color="#FFA3A4AC" />
+                <item android:offset="0.55" android:color="#FF4B4C53" />
+                <item android:offset="1" android:color="#FF2C2D31" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M78,130 a18,18 0 1 0 36,0 a18,18 0 1 0 -36,0 Z" android:fillColor="#FF1B1C1F" />
+    <path android:fillColor="#FFF4F2F8"
+        android:pathData="M93,100.5 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0 Z M93,159.5 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0 Z M63.5,130 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0 Z M122.5,130 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0 Z" />
+</vector>

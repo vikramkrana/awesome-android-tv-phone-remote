@@ -1,0 +1,15 @@
+build/
+.gradle/
+local.properties
+*.apk
+*.keystore
+*.jks
+.idea/
+*.iml
+.DS_Store
+.code-review-graph/
+
+# The ready-made APK for people who only want to try it
+!dist/*.apk
+
+keystore.properties

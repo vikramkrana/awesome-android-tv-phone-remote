@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Everything a builder may want to change for another device, in one place. -->
+<resources>
+    <!-- The remote page's port. If another app holds it, the next free one of the following nine is used. -->
+    <integer name="port">8080</integer>
+
+    <!-- Bonjour/mDNS name the device answers to. Empty: made from the device's name and a short random part, e.g.
+         living-room-3f2a.local, so two devices in one home never share a name. Set one here to use that instead. -->
+    <string name="mdns_name" translatable="false"></string>
+
+    <!-- What the phone calls this device until it is renamed, and the word used in texts: "projector" or "tv".
+         Can also be switched on the device, on the app's own screen. -->
+    <string name="default_kind" translatable="false">projector</string>
+    <!-- How many phones may pair until the owner changes it on the device: 1, 2, 3, 4, 5, 10 or 20. -->
+    <integer name="default_phone_limit">5</integer>
+
+    <!-- Home screens are found automatically (every app that can be the HOME app). Add packages here only if a
+         launcher is missed. -->
+    <string-array name="extra_home_packages" translatable="false" />
+
+    <!-- Packages never listed in, or opened from, the phone's Apps tab. Home screens, this app, system settings
+         and anything that looks like a factory or calibration tool are always left out. -->
+    <string-array name="hidden_packages" translatable="false" />
+
+    <!-- Some projector firmwares (MStar/Softwinner boards) turn arrow keys into mouse moves while the remote's
+         "mouse" button mode is on, and mirror that mode in this system property ("on"). Empty disables the check. -->
+    <string name="mouse_mode_property" translatable="false">sys.KeyMouse.mKeyMouseState</string>
+
+    <!-- Apps that take a search straight from the phone ("Search YouTube"), first installed one wins. -->
+    <string-array name="youtube_packages" translatable="false">
+        <item>com.google.android.youtube.tv</item>
+        <item>com.google.android.youtube</item>
+        <item>com.teamsmart.videomanager.tv</item>
+        <item>com.liskovsoft.smarttubetv.beta</item>
+    </string-array>
+</resources>

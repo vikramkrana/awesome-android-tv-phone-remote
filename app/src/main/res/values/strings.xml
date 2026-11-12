@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Phone Remote</string>
+    <string name="service_description">Lets phones you pair with a PIN act as this device\'s remote: Back, Home, arrows, OK, volume, play/pause, typing into the selected text box, opening apps. It looks at which app is on screen and where its buttons are, and sends nothing you see anywhere. Works only on your home network.</string>
+    <!-- Credit, shown on the device's screen and at the bottom of the phone's Settings. Forks: add your name after it. -->
+    <string name="author">Vikram Rana</string>
+    <!-- The project's home page, e.g. https://github.com/<you>/phone-remote. Empty hides the link. -->
+    <string name="project_url"></string>
+</resources>

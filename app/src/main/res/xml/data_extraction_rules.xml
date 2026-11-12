@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+. The same as backup_rules.xml: settings, never the paired phones' keys. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="device.xml" />
+        <include domain="sharedpref" path="updates.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="device.xml" />
+        <include domain="sharedpref" path="updates.xml" />
+    </device-transfer>
+</data-extraction-rules>

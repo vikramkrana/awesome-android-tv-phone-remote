@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.local.projremote'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.local.projremote'
+        // Android 13+ presses the real D-pad keys (GLOBAL_ACTION_DPAD_*); Android 8 to 12 moves the focus instead.
+        minSdk 26
+        targetSdk 34
+        versionCode 3
+        versionName '1.2'
+    }
+
+    // Your own release key (for the Play Store or your own releases): copy keystore.properties.example to
+    // keystore.properties, fill it in, keep both the key and that file out of git. Without it, release builds are
+    // signed with the debug key, which is fine for trying the app.
+    def keyFile = rootProject.file('keystore.properties')
+    signingConfigs {
+        if (keyFile.exists()) {
+            def k = new Properties()
+            keyFile.withInputStream { k.load(it) }
+            upload {
+                storeFile rootProject.file(k['storeFile'])
+                storePassword k['storePassword']
+                keyAlias k['keyAlias']
+                keyPassword k['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig keyFile.exists() ? signingConfigs.upload : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // QR code for the address on the projector screen. Pure Java, no Android or network code.
+    implementation 'com.google.zxing:core:3.5.3'
+}

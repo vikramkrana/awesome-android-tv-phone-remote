@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. Settings only (name, projector/TV, corner, limit, ...). Paired phones' keys never leave the
+     device: after a reinstall or on a new device, phones pair again. -->
+<full-backup-content>
+    <include domain="sharedpref" path="device.xml" />
+    <include domain="sharedpref" path="updates.xml" />
+</full-backup-content>

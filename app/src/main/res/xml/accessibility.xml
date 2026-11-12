@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Focus, scroll and window changes only: which screen is showing, whether Home scrolled under the card, and the text box a typed search goes into. No key filtering,
+     no screen content is sent anywhere, except the screen preview: a small picture for paired phones, only while the owner
+     has switched it on in the app (off by default). -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeViewFocused|typeViewScrolled|typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="false"
+    android:canTakeScreenshot="true"
+    android:notificationTimeout="200"
+    android:description="@string/service_description" />

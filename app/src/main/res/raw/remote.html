@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{Kind}}">
+<meta name="theme-color" content="#141416">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="icon" href="/icon.png">
+<link rel="manifest" href="/manifest.json">
+<title>{{Kind}}</title>
+<style>
+  /* Solid chrome: one flat graphite ground, metal only on the controls. Change --bg to recolour the app. */
+  :root {
+    --bg: #141416;
+    --key: #2A2A2E;
+    --key-hi: #34343A;
+    --text: #F4F2F8;
+    --dim: rgba(236,232,246,.64);
+    --faint: rgba(236,232,246,.40);
+    --line: rgba(255,255,255,.08);
+    --green: #34C759;
+    --gold: #E2BE6A;
+    --blue: #2E5CD1;
+    --red: #E5484D;
+    --chrome: linear-gradient(150deg, #8A8B92, #45464C 55%, #2C2D31);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 15px -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif; }
+  body { overflow: hidden; user-select: none; -webkit-user-select: none; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  svg { flex-shrink: 0; }
+
+  .app { position: fixed; inset: 0; max-width: 440px; margin: 0 auto; display: flex; flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 10px) 0 calc(env(safe-area-inset-bottom) + 10px); }
+  /* iPhone Home Screen app with a translucent status bar: the page comes out one status bar short, leaving an
+     empty band at the bottom. There the app takes the full screen height itself. */
+  html.standalone, html.standalone body { height: var(--full, 100vh); }
+  html.standalone .app { bottom: auto; height: var(--full, 100vh); padding-bottom: calc(env(safe-area-inset-bottom) + 4px); }
+  .view { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 0 18px; }
+
+  .key { position: relative; background: var(--key); border: 0; box-shadow: 0 8px 20px rgba(0,0,0,.28);
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    transition: transform .12s ease, filter .12s ease; }
+  .key:active, .press:active { transform: scale(.95); filter: brightness(1.3); }
+  /* Pressed: a white tint over the whole key and a small squeeze, clearly visible on the dark keys. */
+  .key.down, .press.down, .app-tile.down, .chip.down, .pad .ok.down, .btn.down {
+    transform: scale(.93); filter: none; box-shadow: inset 0 0 0 300px rgba(255,255,255,.16), 0 0 0 1px rgba(255,255,255,.18) !important; }
+  .list .item.down { transform: none; background: rgba(255,255,255,.07); border-radius: 12px; }
+  nav button.down { opacity: .55; transform: scale(.9); }
+  button { transition: transform .12s ease, filter .12s ease, background-color .12s ease, opacity .12s ease; }
+  .rocker button.down { background: rgba(255,255,255,.14); border-radius: 50%; transform: scale(.92); }
+  .pad .arrow.down { background: radial-gradient(circle at 50% 50%, transparent 56px, rgba(255,255,255,.30) 57px, rgba(255,255,255,.12) 120px); }
+  .pad .arrow.down svg, .rocker button.down svg { filter: drop-shadow(0 0 6px rgba(255,255,255,.8)); transform: scale(1.15); }
+  .pad .arrow svg { transition: transform .1s ease, filter .1s ease; }
+  .down { transition-duration: .05s !important; }
+  button.down:not(.key):not(.press):not(.arrow):not(.app-tile):not(.chip):not(.item):not(.ok):not(.btn) { opacity: .55; }
+  .round { width: 56px; height: 56px; border-radius: 28px; }
+  .round.sm { width: 50px; height: 50px; border-radius: 25px; }
+  .blue { background: var(--blue); }
+
+  /* header */
+  .top { display: flex; align-items: center; gap: 10px; padding: 4px 0 0; }
+  .pill { flex: 1; min-width: 0; height: 48px; border-radius: 24px; display: flex; align-items: center;
+    justify-content: center; gap: 10px; font-weight: 600; }
+  .pill .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dot { position: relative; width: 8px; height: 8px; flex-shrink: 0; }
+  .dot i { position: absolute; inset: 0; border-radius: 4px; background: var(--green); }
+  .dot i:first-child { animation: pulse 2s ease-out infinite; }
+  .dot.off i { background: var(--red); animation: none; }
+  @keyframes pulse { 0% { transform: scale(1); opacity: .8 } 100% { transform: scale(2.6); opacity: 0 } }
+
+  /* remote */
+  .remote { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 12px; padding: 8px 8px 0; min-height: 556px; }
+  .corner { display: flex; justify-content: space-between; align-items: center; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .rocker { width: 62px; height: 132px; border-radius: 31px; flex-direction: column; justify-content: space-between; }
+  .rocker button { width: 62px; height: 54px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
+  .rocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
+  .pad { position: relative; width: 240px; height: 240px; border-radius: 120px; margin: 0 auto;
+    background: var(--chrome); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25); }
+  [data-hold] { touch-action: none; }
+  .note { margin: 4px 2px 0; padding: 10px 14px; border-radius: 14px; background: var(--key); border: 1px solid var(--line); font-size: 13px; line-height: 1.4; color: #D9D6E0; }
+  .note b { color: #F4F2F8; font-weight: 600; }
+  .haptic { position: fixed; left: -100px; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+  /* Each arrow is a whole quarter of the ring (a wedge from the centre), so a tap anywhere in it counts. */
+  .pad { overflow: hidden; }
+  .pad .arrow { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; border: 0; padding: 0;
+    display: flex; align-items: center; justify-content: center; }
+  .pad .arrow.u { clip-path: polygon(50% 50%, 0 0, 100% 0); align-items: flex-start; padding-top: 22px; }
+  .pad .arrow.d { clip-path: polygon(50% 50%, 100% 100%, 0 100%); align-items: flex-end; padding-bottom: 22px; }
+  .pad .arrow.l { clip-path: polygon(50% 50%, 0 100%, 0 0); justify-content: flex-start; padding-left: 22px; }
+  .pad .arrow.r { clip-path: polygon(50% 50%, 100% 0, 100% 100%); justify-content: flex-end; padding-right: 22px; }
+  .pad .ok { z-index: 2; position: absolute; left: 64px; top: 64px; width: 112px; height: 112px; border-radius: 56px;
+    background: #232427; font-size: 22px; font-weight: 600; box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
+  .touch { width: 100%; height: 240px; border-radius: 32px; background: var(--key); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px; color: var(--dim); font-size: 14px; text-align: center;
+    touch-action: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .1s; }
+  .touch.flash { box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+  .touch b { color: var(--text); font-size: 16px; font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .seg { flex: 1; height: 50px; border-radius: 25px; display: flex; }
+  .seg button { flex: 1; height: 50px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .qa { min-width: 0; flex-direction: column; gap: 6px; padding: 10px 4px 8px; border-radius: 18px; font-size: 11.5px; font-weight: 500; color: var(--dim); }
+  .qa img { width: 40px; height: 40px; border-radius: 11px; }
+  .qa .lbl { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
+  .qa.now { color: var(--text); box-shadow: 0 0 0 1.5px rgba(226,190,106,.75), 0 8px 20px rgba(0,0,0,.28); }
+  .qa .eq { position: absolute; top: 7px; right: 7px; }
+  .eq { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .eq span { display: block; width: 3px; border-radius: 2px; background: var(--gold); animation: eq 1.1s ease-in-out infinite; }
+  .eq span:nth-child(2) { animation-delay: .25s } .eq span:nth-child(3) { animation-delay: .5s }
+  @keyframes eq { 0%,100% { height: 4px } 50% { height: 12px } }
+
+  /* tabs */
+  nav { margin: 8px 16px 0; display: flex; gap: 4px; padding: 5px; border-radius: 32px; background: var(--key);
+    box-shadow: 0 8px 20px rgba(0,0,0,.28); }
+  nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0;
+    border-radius: 26px; background: transparent; border: 0; color: var(--dim); font-size: 11px; font-weight: 500; }
+  nav button.on { background: rgba(255,255,255,.12); color: var(--text); font-weight: 600; }
+
+  h2 { font-size: 26px; font-weight: 700; margin: 10px 2px 14px; letter-spacing: -.3px; }
+  .label { font-size: 12px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; margin: 18px 4px 10px; }
+  .card { background: var(--key); border-radius: 22px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.22); }
+  .list .item { display: flex; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--line); background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left; }
+  .list .item:last-child { border-bottom: 0; }
+  .item .grow { flex: 1; min-width: 0; }
+  .item small { display: block; color: var(--dim); font-size: 13px; margin-top: 2px; }
+
+  /* apps */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .app-tile { background: var(--key); border: 0; border-radius: 20px; padding: 14px 6px 12px; display: flex; flex-direction: column;
+    align-items: center; gap: 8px; font-size: 12px; font-weight: 500; position: relative; box-shadow: 0 8px 20px rgba(0,0,0,.22); }
+  .app-tile img { width: 48px; height: 48px; border-radius: 12px; }
+  .app-tile span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+  .app-tile.now { box-shadow: 0 0 0 1.5px rgba(226,190,106,.75), 0 8px 20px rgba(0,0,0,.22); }
+  .app-tile .star { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 11px; background: rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center; }
+  .app-tile .star.on { background: var(--gold); }
+  .chiprow { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .chip { flex-shrink: 0; height: 38px; border-radius: 19px; padding: 0 14px; display: flex; align-items: center; gap: 8px;
+    background: var(--key); border: 0; font-size: 13px; font-weight: 500; }
+  .chip img { width: 20px; height: 20px; border-radius: 5px; }
+  .linkbtn { background: none; border: 0; color: var(--gold); font-weight: 600; font-size: 14px; }
+
+  /* sheets */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 10; opacity: 0; transition: opacity .2s; }
+  .scrim.show { opacity: 1; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-width: 440px; margin: 0 auto; z-index: 11; background: #1C1C20; border-radius: 28px 28px 0 0;
+    padding: 10px 18px calc(env(safe-area-inset-bottom) + 18px); transform: translateY(100%); transition: transform .25s cubic-bezier(.2,.7,.2,1); }
+  .sheet.show { transform: none; }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.2); margin: 0 auto 14px; }
+  .sheet h3 { margin: 0 0 4px; font-size: 20px; }
+  .sheet p { margin: 0 0 14px; color: var(--dim); font-size: 14px; }
+  .field { width: 100%; height: 54px; border-radius: 16px; border: 1px solid var(--line); background: var(--key); padding: 0 16px; font-size: 17px; outline: none; }
+  .field:focus { border-color: rgba(255,255,255,.25); }
+  .tabs2 { display: flex; background: var(--key); border-radius: 14px; padding: 4px; margin-bottom: 14px; }
+  .tabs2 button { flex: 1; height: 36px; border-radius: 10px; border: 0; background: transparent; color: var(--dim); font-weight: 600; font-size: 13px; }
+  .tabs2 button.on { background: rgba(255,255,255,.12); color: var(--text); }
+  .btn { height: 52px; border-radius: 26px; border: 0; background: var(--key); font-weight: 600; font-size: 16px; width: 100%; box-shadow: 0 8px 20px rgba(0,0,0,.28); }
+  .btn.primary { background: var(--text); color: #141416; }
+  .btn.danger { color: #FF8A80; }
+
+  /* pairing and states */
+  .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 28px; gap: 14px; }
+  .center h1 { font-size: 28px; margin: 6px 0 0; letter-spacing: -.4px; }
+  .center p { margin: 0; color: var(--dim); line-height: 1.5; }
+  .halo { width: 120px; height: 120px; border-radius: 60px; background: var(--chrome); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25); position: relative; }
+  .halo::after { content: ""; position: absolute; inset: -10px; border-radius: 70px; border: 1.5px solid rgba(255,255,255,.18); animation: ring 2.4s ease-out infinite; }
+  @keyframes ring { 0% { transform: scale(.9); opacity: .9 } 100% { transform: scale(1.25); opacity: 0 } }
+  .boxes { display: flex; gap: 8px; justify-content: center; }
+  .boxes span { width: 44px; height: 56px; border-radius: 14px; background: var(--key); display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 600; }
+  .boxes span.cur { box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+  .pinin { position: absolute; opacity: 0; pointer-events: none; }
+  .steps { text-align: left; color: var(--dim); font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px; }
+
+  #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px); transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,.85); padding: 10px 16px; border-radius: 14px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  #toast.show { opacity: 1; }
+  .up { animation: up .5s cubic-bezier(.2,.7,.2,1) both; } .u2 { animation-delay: .06s } .u3 { animation-delay: .12s } .u4 { animation-delay: .18s }
+  @keyframes up { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+  .about { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 26px 4px 10px; text-align: center; color: var(--faint); font-size: 12px; }
+  .about img { border-radius: 11px; margin-bottom: 6px; }
+  .about b { color: var(--dim); font-size: 14px; font-weight: 600; }
+  .about a { color: var(--dim); text-decoration: underline; margin-top: 2px; }
+  /* Projector tab: now playing, preview, volume, link, timer, other devices. */
+  .np { display: flex; flex-direction: column; gap: 12px; }
+  .np .top2 { display: flex; gap: 14px; align-items: center; }
+  .np img.art { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--key-hi); flex-shrink: 0; }
+  .np .t { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np .s { font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+  .np .times { display: flex; justify-content: space-between; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; margin-top: -4px; }
+  .np .ctl { display: flex; justify-content: space-between; align-items: center; padding: 0 6px; }
+  .np .ctl button { width: 46px; height: 46px; border-radius: 23px; border: 0; background: none; display: flex; align-items: center; justify-content: center; }
+  .np .ctl button.big { width: 58px; height: 58px; border-radius: 29px; background: var(--key-hi); }
+  .np .ctl button.down { background: rgba(255,255,255,.14); }
+  input[type=range].slim { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: none; margin: 0; }
+  input[type=range].slim::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--text) var(--p, 0%), rgba(255,255,255,.14) var(--p, 0%)); }
+  input[type=range].slim::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 10px; background: #fff; margin-top: -7px; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  input[type=range].slim:disabled { opacity: .4; }
+  .volrow { display: flex; align-items: center; gap: 12px; }
+  .volrow b { min-width: 30px; text-align: right; font-size: 13px; color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .preview { width: 100%; aspect-ratio: 16/9; border-radius: 14px; background: #000; display: block; object-fit: contain; }
+  .chip.on { background: var(--text); color: #141416; }
+  .note.guest { border-color: rgba(226,190,106,.35); }
+  .note.update { border-color: rgba(52,199,89,.35); }
+  .note a { color: var(--text); }
+  /* Remote: mute, volume, voice above the ring; back, play, home below it. */
+  .round.lg { width: 64px; height: 64px; border-radius: 32px; }
+  .remote .corner { padding: 0 6px; }
+  .hrocker { flex: 0 1 190px; height: 56px; border-radius: 28px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin: 0 12px; }
+  .hrocker button { width: 64px; height: 56px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
+  .hrocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
+  .hrocker button.down { background: rgba(255,255,255,.14); border-radius: 28px; transform: scale(.94); }
+  #padWrap { position: relative; }
+  .modeBtn { position: absolute; right: 2px; bottom: 0; width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent; color: var(--faint); display: flex; align-items: center; justify-content: center; z-index: 3; }
+  .modeBtn.down { background: rgba(255,255,255,.1); color: var(--text); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-1"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z M23 9l-6 6 M17 9l6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5 M5 9.5V21h14V9.5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v3"/></symbol>
+    <symbol id="i-kbd" viewBox="0 0 24 24"><path d="M2 6h20v12H2z M6 10h.01 M10 10h.01 M14 10h.01 M18 10h.01 M7 14h10"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-touch" viewBox="0 0 24 24"><path d="M9 11V5a2 2 0 0 1 4 0v6 M13 10a2 2 0 0 1 4 0v4a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.2-2.3L4 14a1.8 1.8 0 0 1 3-2l2 2"/></symbol>
+    <symbol id="i-dpad" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/></symbol>
+    <symbol id="i-rew" viewBox="0 0 24 24"><path d="M11 19l-9-7 9-7z M22 19l-9-7 9-7z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M4 5l9 7-9 7z M16 5v14 M20 5v14"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M13 19l9-7-9-7z M2 19l9-7-9-7z"/></symbol>
+    <symbol id="i-apps" viewBox="0 0 24 24"><path d="M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z"/></symbol>
+    <symbol id="i-remote" viewBox="0 0 24 24"><path d="M8 2h8v20H8z M12 6h.01 M12 10h.01 M10 14h4 M10 17h4"/></symbol>
+    <symbol id="i-proj" viewBox="0 0 24 24"><path d="M2 8h20v9H2z M6 12.5h3 M16 10a2.5 2.5 0 1 1 0 5a2.5 2.5 0 1 1 0-5 M5 17v2 M19 17v2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14 M21 21l-4.35-4.35"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14 0 M1.42 9a16 16 0 0 1 21.16 0 M8.53 16.11a6 6 0 0 1 6.95 0 M12 20h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v8 M7.5 6.3a7 7 0 1 0 9 0"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 19L9 12l10-7z M5 5v14"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5l10 7-10 7z M19 5v14"/></symbol>
+    <symbol id="i-b10" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7 M3 4v5h5"/><text x="12.5" y="15.6" font-size="8" font-weight="700" text-anchor="middle" fill="#F4F2F8" stroke="none" font-family="-apple-system,system-ui,sans-serif">10</text></symbol>
+    <symbol id="i-f10" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7 M21 4v5h-5"/><text x="11.5" y="15.6" font-size="8" font-weight="700" text-anchor="middle" fill="#F4F2F8" stroke="none" font-family="-apple-system,system-ui,sans-serif">10</text></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13 M22 2l-7 20-4-9-9-4z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ===== Welcome / pairing ===== -->
+  <section id="vPair" class="view hidden">
+    <div class="center">
+      <div class="halo up"><svg width="44" height="44" fill="none" stroke="#F4F2F8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><use href="#i-remote"/></svg></div>
+      <h1 class="up u2" id="pairTitle">Pair this phone</h1>
+      <p class="up u2" id="pairText">Scan the QR code on the {{kind}}'s Home screen with your camera. Or use a PIN.</p>
+      <div class="up u3" style="width:100%;display:flex;flex-direction:column;gap:12px;margin-top:6px">
+        <input id="phoneName" class="field" maxlength="30" placeholder="Name this phone" aria-label="Name this phone">
+        <div id="pinBlock" style="display:flex;flex-direction:column;gap:12px">
+          <button class="btn press" id="showPin">Show a PIN on the {{kind}}</button>
+          <label class="boxes" for="pin" id="boxes"><span></span><span></span><span></span><span></span><span></span><span></span></label>
+          <input id="pin" class="pinin" inputmode="numeric" autocomplete="one-time-code" maxlength="6" aria-label="PIN">
+          <button class="btn primary press" id="pairBtn">Pair with PIN</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Paired ===== -->
+  <section id="vDone" class="view hidden">
+    <div class="center">
+      <div class="halo up"><svg width="44" height="44" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg></div>
+      <h1 class="up u2">You're connected</h1>
+      <p class="up u2" id="doneText">Keep it one tap away: in Safari tap <b>Share</b>, then <b>Add to Home Screen</b>. The new icon asks for a PIN once more: iPhone keeps Home Screen apps separate from Safari.</p>
+      <button class="btn primary press up u3" id="doneBtn" style="margin-top:10px">Open the remote</button>
+    </div>
+  </section>
+
+  <!-- ===== Can't reach ===== -->
+  <section id="vLost" class="view hidden">
+    <div class="center">
+      <div class="halo up"><svg width="40" height="40" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-wifi"/></svg></div>
+      <h1 class="up u2">Can't reach <span class="devName">the {{kind}}</span></h1>
+      <ol class="steps up u3">
+        <li>Is the {{kind}} switched on?</li>
+        <li>Is this phone on the <b>same Wi-Fi</b> as the {{kind}}?</li>
+        <li>Moved to another network? Scan the QR on its Home screen again.</li>
+      </ol>
+      <button class="btn primary press up u4" id="retryBtn" style="margin-top:8px">Try again</button>
+      <p style="font-size:13px">Trying again automatically…</p>
+    </div>
+  </section>
+
+  <!-- ===== Remote ===== -->
+  <section id="vRemote" class="view hidden">
+    <div class="top up">
+      <button class="key round sm press guestDim" aria-label="Sleep" id="sleepBtn"><svg width="20" height="20" fill="none" stroke="#FF8A80" stroke-width="2" stroke-linecap="round"><use href="#i-power"/></svg></button>
+      <button class="key pill press" id="devPill"><span class="dot" id="dot"><i></i><i></i></span><span class="name devName">{{Kind}}</span></button>
+      <button class="key round sm press" aria-label="Search or type" data-sheet="search"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round"><use href="#i-search"/></svg></button>
+    </div>
+    <div class="note hidden" id="ptrNote" role="status"><b>Mouse mode is on</b> (the mouse button on the {{kind}}'s own remote). The phone's arrows still move the selection; press that mouse button again to hide the pointer.</div>
+    <div class="remote">
+      <div class="corner up u2">
+        <button class="key round" aria-label="Mute" data-k="mute"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mute"/></svg></button>
+        <div class="key hrocker">
+          <button aria-label="Volume down" data-k="voldown" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-minus"/></svg></button>
+          <span>VOL</span>
+          <button aria-label="Volume up" data-k="volup" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-plus"/></svg></button>
+        </div>
+        <button class="key round blue" aria-label="Voice" data-sheet="voice"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mic"/></svg></button>
+      </div>
+
+      <div class="up u3" id="padWrap">
+        <div class="pad" id="pad">
+          <button class="arrow u" aria-label="Up" data-k="up" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-up"/></svg></button>
+          <button class="arrow d" aria-label="Down" data-k="down" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></button>
+          <button class="arrow l" aria-label="Left" data-k="left" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-left"/></svg></button>
+          <button class="arrow r" aria-label="Right" data-k="right" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-right"/></svg></button>
+          <button class="ok press" data-k="ok">OK</button>
+        </div>
+        <button class="modeBtn" aria-label="Touchpad" id="modeBtn"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="modeIcon"><use href="#i-touch"/></svg></button>
+        <div class="touch hidden" id="touch"><b>Swipe to move, tap to select</b>Swipe and hold to keep moving · hold still for a long press · two fingers scroll a page</div>
+      </div>
+
+      <div class="corner up u4">
+        <button class="key round lg" aria-label="Back" data-k="back"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-back"/></svg></button>
+        <button class="key round lg" aria-label="Play or pause" data-k="playpause"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linejoin="round"><use href="#i-play"/></svg></button>
+        <button class="key round lg" aria-label="Home" data-k="home"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-home"/></svg></button>
+      </div>
+
+      <div class="quick up u4" id="quick"></div>
+    </div>
+  </section>
+
+  <!-- ===== Apps ===== -->
+  <section id="vApps" class="view hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between"><h2>Apps</h2><button class="linkbtn" id="editQuick">Edit quick apps</button></div>
+    <div id="recentWrap"><div class="label">Recent</div><div class="chiprow" id="recent"></div></div>
+    <div class="label" id="appsLabel">On the {{kind}}</div>
+    <div class="grid" id="grid"></div>
+    <div style="height:16px"></div>
+  </section>
+
+  <!-- ===== Projector ===== -->
+  <section id="vProj" class="view hidden">
+    <h2 class="devName">{{Kind}}</h2>
+    <div class="note update hidden" id="updateNote"></div>
+
+    <div class="label" id="npLabel">Now showing</div>
+    <div class="card np" id="npCard">
+      <div class="top2">
+        <img class="art hidden" id="npArt" alt="">
+        <div style="flex:1;min-width:0"><div class="t" id="npTitle">Home screen</div><div class="s" id="npSub"></div></div>
+      </div>
+      <div id="npMedia" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+        <input type="range" class="slim" id="npSeek" min="0" max="1000" value="0" aria-label="Position">
+        <div class="times"><span id="npPos">0:00</span><span id="npDur">0:00</span></div>
+        <div class="ctl">
+          <button class="press" aria-label="Back 10 seconds" data-media="back"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-b10"/></svg></button>
+          <button class="press" aria-label="Previous" data-media="previous"><svg width="22" height="22" fill="#F4F2F8" stroke="#F4F2F8" stroke-width="1.6" stroke-linejoin="round"><use href="#i-prev"/></svg></button>
+          <button class="press big" aria-label="Play or pause" data-media="toggle" id="npToggle"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linejoin="round"><use href="#i-play"/></svg></button>
+          <button class="press" aria-label="Next" data-media="next"><svg width="22" height="22" fill="#F4F2F8" stroke="#F4F2F8" stroke-width="1.6" stroke-linejoin="round"><use href="#i-next"/></svg></button>
+          <button class="press" aria-label="Forward 10 seconds" data-media="fwd"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-f10"/></svg></button>
+        </div>
+      </div>
+      <p id="npOff" class="hidden" style="margin:0;font-size:13px;color:var(--faint);line-height:1.45">See the title and seek: on the {{kind}}, open {{app}} and turn on <b>Now playing</b>.</p>
+    </div>
+
+    <div id="prevWrap" class="hidden">
+      <div class="label">On screen</div>
+      <img class="preview" id="prevImg" alt="What the {{kind}} shows">
+    </div>
+
+    <div id="volWrap" class="hidden">
+      <div class="label">Volume</div>
+      <div class="card volrow"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mute"/></svg><input type="range" class="slim" id="volRange" min="0" max="15" value="0" aria-label="Volume"><b id="volNum">0</b></div>
+    </div>
+
+    <div class="label">Send a link</div>
+    <form class="row" id="linkForm"><input class="field" id="linkInput" type="url" inputmode="url" autocomplete="off" placeholder="Paste a YouTube or web link"><button class="key round press" aria-label="Open on the {{kind}}" style="flex-shrink:0;width:54px;height:54px"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-send"/></svg></button></form>
+
+    <div id="timerWrap">
+      <div class="label">Sleep timer <span id="timerLeft" style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)"></span></div>
+      <div class="chiprow" id="timerRow">
+        <button class="chip press" data-timer="0">Off</button><button class="chip press" data-timer="15">15 min</button><button class="chip press" data-timer="30">30 min</button><button class="chip press" data-timer="60">1 hour</button><button class="chip press" data-timer="90">1½ hours</button><button class="chip press" data-timer="120">2 hours</button>
+      </div>
+    </div>
+
+    <div class="label">Shortcuts</div>
+    <div class="card">
+      <div class="list">
+        <button class="item press guestHide" data-act="projector"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-proj"/></svg><div class="grow">{{Kind}} settings<small>Picture, sound, network and more: opens on screen</small></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+        <button class="item press" data-k="home"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-home"/></svg><div class="grow">Home screen</div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+      </div>
+    </div>
+
+    <div id="othersWrap" class="hidden">
+      <div class="label">Other screens here</div>
+      <div class="card"><div class="list" id="others"></div></div>
+      <p style="color:var(--faint);font-size:12px;margin:8px 4px 0;line-height:1.45">Each one pairs this phone on its own, the first time.</p>
+    </div>
+    <div style="height:18px"></div>
+  </section>
+
+  <!-- ===== Settings ===== -->
+  <section id="vSettings" class="view hidden">
+    <h2>Settings</h2>
+    <div class="note guest hidden" id="guestNote"></div>
+    <div class="label guestHide">{{Kind}} name</div>
+    <div class="row guestHide"><input class="field" id="rename" maxlength="40" placeholder="e.g. Living room"><button class="key round sm press" aria-label="Save name" id="renameBtn"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg></button></div>
+    <p id="hostLine" class="hidden" style="margin:8px 4px 0;font-size:13px;color:var(--dim)"></p>
+    <div class="label">This phone</div>
+    <div class="card"><div class="list">
+      <div class="item"><div class="grow"><span id="myName">Phone</span><small>Paired with this {{kind}}</small></div></div>
+      <button class="item press hidden" id="homeBtn"><div class="grow">Add to Home Screen<small>Opens straight into the remote, no PIN</small></div></button>
+      <button class="item press" id="hapticBtn"><div class="grow">Vibrate on press<small id="hapticState">On</small></div></button>
+      <button class="item press guestHide" id="diagBtn"><div class="grow">Copy diagnostics<small>For a bug report: device, Android, setup. No names or keys.</small></div></button>
+      <button class="item press" id="unpairBtn"><div class="grow" style="color:#FF8A80">Unpair this phone</div></button>
+    </div></div>
+    <div class="label">Help</div>
+    <div class="card"><div class="list">
+      <div class="item"><div class="grow">Typing<small>Select a search box on the {{kind}} first, then type or speak on the phone.</small></div></div>
+      <div class="item"><div class="grow">Voice<small>Tap the microphone on the iPhone keyboard to dictate.</small></div></div>
+      <div class="item"><div class="grow">Other phones<small>Each phone scans the QR on the {{kind}}'s Home screen. Remove phones on the {{app}} screen there.</small></div></div>
+      <div class="item"><div class="grow">Hotel or office Wi-Fi<small>If the phone can't reach the {{kind}}, connect the {{kind}} to the phone's hotspot.</small></div></div>
+    </div></div>
+    <div class="about">
+      <img src="/icon.png" width="44" height="44" alt="">
+      <b>{{app}}</b>
+      <span>Version {{version}} · Made by {{author}}</span>
+      <span>Open source, MIT licence · works only on your local network</span>
+      {{project}}
+    </div>
+  </section>
+
+  <nav id="nav" class="hidden" aria-label="Main">
+    <button data-tab="remote" class="on"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-remote"/></svg>Remote</button>
+    <button data-tab="apps"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><use href="#i-apps"/></svg>Apps</button>
+    <button data-tab="proj"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-proj"/></svg>{{Kind}}</button>
+    <button data-tab="settings"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-gear"/></svg>Settings</button>
+  </nav>
+</div>
+
+<!-- ===== Keyboard / voice / search sheet ===== -->
+<div class="scrim hidden" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grab"></div>
+  <div class="tabs2"><button data-mode="type" class="on">Type on screen</button><button data-mode="search">Search YouTube</button></div>
+  <h3 id="sheetTitle">Type on screen</h3>
+  <p id="sheetHint">Select a search box on the {{kind}}, then type or tap 🎤 on the keyboard to speak.</p>
+  <form id="sheetForm" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row">
+      <input class="field" id="sheetInput" type="search" enterkeyhint="search" autocomplete="off" placeholder="Type or speak">
+      <button type="button" class="key round blue" id="micBtn" aria-label="Speak" style="flex-shrink:0;width:54px;height:54px"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mic"/></svg></button>
+    </div>
+    <p id="micHint" class="hidden" style="margin:-2px 2px 0;font-size:13px;color:var(--dim);line-height:1.45"></p>
+    <div class="chiprow" id="history"></div>
+    <div class="row hidden" id="liveRow" style="justify-content:space-between"><span style="font-size:13px;color:var(--dim)">Live: letters appear on the {{kind}} as you type</span><button type="button" class="chip press" id="liveBtn">Off</button></div>
+    <div class="row"><button type="button" class="btn press" id="clearBtn" style="flex:1">Clear</button><button class="btn primary press" style="flex:2" id="sendBtn">Search</button></div>
+  </form>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  // iPadOS calls itself a Mac; a Mac has no touch screen.
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  const standalone = !!navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  if (isIOS && standalone) {
+    // The Home Screen app's page is one status bar shorter than the screen, which clips the tab bar. The whole
+    // screen height (portrait, the remote's orientation) is the real size.
+    const fit = () => {
+      const full = Math.max(window.innerHeight, Math.max(screen.width, screen.height) * (innerHeight > innerWidth ? 1 : 0));
+      document.documentElement.style.setProperty("--full", (full || innerHeight) + "px");
+    };
+    document.documentElement.classList.add("standalone");
+    fit(); addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 300));
+  }
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+  };
+  let token = store.get("token", null);
+  // Phones paired with the first version kept the token under another key: carry it over.
+  try { const legacy = localStorage.getItem("projremote-token"); if (!token && legacy) { token = legacy; store.set("token", token); } localStorage.removeItem("projremote-token"); } catch (e) {}
+  let state = { name: "{{Kind}}", phone: "", current: null };
+  let apps = [];
+  const icons = {};
+  let editing = false;
+
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 1700);
+  }
+
+  // ---- haptics ---------------------------------------------------------------------------------------------------
+  // Android: the Vibration API. iPhone has none for web pages, but toggling an <input switch> (iOS 17.4+) plays the
+  // system's light tap, so a hidden one is toggled on each press. Skipped while typing, so the keyboard stays up.
+  let haptics = store.get("haptics", true);
+  const hapticBox = (() => {
+    const l = document.createElement("label"); l.className = "haptic"; l.setAttribute("aria-hidden", "true");
+    const i = document.createElement("input"); i.type = "checkbox"; i.setAttribute("switch", ""); i.tabIndex = -1;
+    l.appendChild(i); document.body.appendChild(l); return l;
+  })();
+  function haptic() {
+    if (!haptics) return;
+    const a = document.activeElement;
+    if (a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && a.type !== "checkbox"))) {
+      if (navigator.vibrate) navigator.vibrate(8);
+      return;
+    }
+    if (navigator.vibrate) { navigator.vibrate(8); return; }
+    try { hapticBox.click(); } catch (e) {}
+  }
+  // Pressed look: a class set on touch, because iOS Safari does not apply :active to plain taps. The tick: Android
+  // vibrates at touch; iPhone only plays the switch tap from a real user gesture, so at release (pointerup), which
+  // a quick tap makes feel immediate anyway.
+  let pressed = null, pressedAt = 0;
+  function release() { if (pressed) { pressed.classList.remove("down"); pressed = null; } }
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    release();
+    const b = e.target.closest("button, .press, [data-k]");
+    if (b) { pressed = b; pressedAt = performance.now(); b.classList.add("down"); }
+    if ((b || e.target.closest("#touch")) && !isIOS) haptic();
+  }, true);
+  document.addEventListener("pointerup", (e) => {
+    const el = pressed;
+    pressed = null;
+    // A quick tap still shows the press for a moment.
+    if (el) setTimeout(() => el.classList.remove("down"), Math.max(120, 200 - (performance.now() - pressedAt)));
+    // Hold keys and the touchpad cancel the tap's default, so they tick here; every other button ticks on click.
+    if (isIOS && ((el && el.hasAttribute("data-hold")) || e.target.closest("#touch"))) haptic();
+  }, true);
+  document.addEventListener("click", (e) => {
+    if (!isIOS || e.detail === 0) return;
+    const b = e.target.closest("button, .press, [data-k]");
+    if (b && !b.hasAttribute("data-hold")) haptic();
+  }, true);
+  document.addEventListener("pointercancel", release, true);
+  document.addEventListener("touchstart", () => {}, { passive: true });
+  function drawHaptics() { $("hapticState").textContent = haptics ? "On" : "Off"; }
+  drawHaptics();
+  $("hapticBtn").onclick = () => { haptics = !haptics; store.set("haptics", haptics); drawHaptics(); if (!isIOS) haptic(); };
+
+  // ---- views ---------------------------------------------------------------------------------------------------
+  const VIEWS = { pair: "vPair", done: "vDone", lost: "vLost", remote: "vRemote", apps: "vApps", proj: "vProj", settings: "vSettings" };
+  let current = null;
+  function show(name) {
+    current = name;
+    for (const [k, id] of Object.entries(VIEWS)) $(id).classList.toggle("hidden", k !== name);
+    const tabbed = ["remote", "apps", "proj", "settings"].includes(name);
+    $("nav").classList.toggle("hidden", !tabbed);
+    document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+    if (name === "apps") renderApps();
+    if (name === "proj") { renderNow(); previewLoop(); }
+    if (name === "settings") {
+      if (state.host) { $("hostLine").textContent = "Also at http://" + state.host + " on this Wi-Fi"; $("hostLine").classList.remove("hidden"); }
+      $("rename").value = state.name; $("myName").textContent = state.phone || "This phone"; }
+  }
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-tab]");
+    if (t) show(t.dataset.tab);
+  });
+
+  // ---- signing -----------------------------------------------------------------------------------------------------
+  // Requests are signed with a key derived from the token, so the token itself does not cross the network with
+  // every press (see Pairing.java). The browser's own crypto is not offered to plain-HTTP pages, hence SHA-256 here.
+  const K256 = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,
+    0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,
+    0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,
+    0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,
+    0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  function sha256(bytes) {
+    const n = bytes.length, total = ((n + 9 + 63) >> 6) << 6, m = new Uint8Array(total);
+    m.set(bytes); m[n] = 0x80;
+    const dv = new DataView(m.buffer); dv.setUint32(total - 4, n * 8); dv.setUint32(total - 8, Math.floor(n / 0x20000000));
+    const h = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+    const w = new Uint32Array(64), r = (x, c) => (x >>> c) | (x << (32 - c));
+    for (let o = 0; o < total; o += 64) {
+      for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+      for (let i = 16; i < 64; i++) {
+        const s0 = r(w[i-15], 7) ^ r(w[i-15], 18) ^ (w[i-15] >>> 3), s1 = r(w[i-2], 17) ^ r(w[i-2], 19) ^ (w[i-2] >>> 10);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1) | 0;
+      }
+      let [a, b, c, d, e, f, g, k] = h;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (k + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K256[i] + w[i]) | 0;
+        const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        k = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += k;
+    }
+    const out = new Uint8Array(32); const ov = new DataView(out.buffer);
+    for (let i = 0; i < 8; i++) ov.setUint32(i * 4, h[i]);
+    return out;
+  }
+  const utf8 = (t) => new TextEncoder().encode(t);
+  const hex = (b) => [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  function hmac(keyBytes, msgBytes) {
+    let k = keyBytes.length > 64 ? sha256(keyBytes) : keyBytes;
+    const pad = new Uint8Array(64); pad.set(k);
+    const inner = new Uint8Array(64 + msgBytes.length), outer = new Uint8Array(96);
+    for (let i = 0; i < 64; i++) { inner[i] = pad[i] ^ 0x36; outer[i] = pad[i] ^ 0x5c; }
+    inner.set(msgBytes, 64); outer.set(sha256(inner), 64);
+    return hex(sha256(outer));
+  }
+  let signing = null;   // { key, id } derived from the token
+  let epoch = null;
+  function keys() {
+    if (!token) return null;
+    if (!signing || signing.token !== token) {
+      const k = hex(sha256(utf8(token)));
+      signing = { token, key: utf8(k), id: hex(sha256(utf8("pub:" + k))).slice(0, 32) };
+    }
+    return signing;
+  }
+  // Grows with every request; time-based so it keeps growing across reloads without storage, stored anyway in
+  // case the phone's clock steps back.
+  let lastCtr = Number(store.get("ctr", 0)) || 0;
+  function nextCtr() {
+    lastCtr = Math.max(Date.now() * 1000, lastCtr + 1);
+    store.set("ctr", lastCtr);
+    return String(lastCtr);
+  }
+
+  // ---- network ---------------------------------------------------------------------------------------------------
+  let online = true;
+  async function signedFetch(path, body) {
+    const k = keys();
+    if (!epoch) epoch = await fetch("/api/hello", { method: "POST" }).then((r) => r.text());
+    const ctr = nextCtr();
+    const sig = hmac(k.key, utf8(epoch + "\n" + ctr + "\n" + path + "\n" + body));
+    return fetch(path, { method: "POST", headers: { "X-Key": k.id, "X-Ctr": ctr, "X-Sig": sig }, body });
+  }
+  async function api(path, body) {
+    if (!token) throw new Error("unpaired");
+    body = body || "";
+    let res;
+    try {
+      res = await signedFetch(path, body);
+      if (res.status === 401) {
+        // The remote restarted (new epoch) or this phone's clock went back: catch up and try once more.
+        const e = res.headers.get("X-Epoch"), c = Number(res.headers.get("X-Ctr")) || 0;
+        if ((e && e !== epoch) || c > lastCtr) {
+          if (e) epoch = e;
+          if (c > lastCtr) lastCtr = c;
+          res = await signedFetch(path, body);
+        }
+      }
+    } catch (e) { setOnline(false); throw e; }
+    setOnline(true);
+    if (res.status === 401) { if (!token) throw new Error("unpaired"); unpaired("This phone was removed from the {{kind}}. Pair it again with a PIN."); throw new Error("unpaired"); }
+    return res;
+  }
+  function setOnline(on) {
+    if (on === online) return;
+    online = on;
+    $("dot").classList.toggle("off", !on);
+    if (!on && token && current !== "lost") { show("lost"); retryLoop(); }
+  }
+  async function retryLoop() {
+    while (!online && token) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try { await refresh(); } catch (e) {}
+    }
+    if (online && current === "lost") show("remote");
+  }
+  $("retryBtn").onclick = () => refresh().then(() => { if (online) show("remote"); }).catch(() => toast("Still can't reach it"));
+
+  async function refresh() {
+    const r = await api("/api/state");
+    if (!r.ok) return;
+    const s = await r.json();
+    const changed = JSON.stringify(s) !== JSON.stringify(state);
+    state = s;
+    $("ptrNote").classList.toggle("hidden", !s.pointer);
+    // No YouTube app on the device: no "Search YouTube".
+    document.querySelectorAll("[data-mode=search]").forEach((el) => el.classList.toggle("hidden", s.youtube === false));
+    document.querySelectorAll(".devName").forEach((el) => (el.textContent = s.name));
+    // A guest: the owner's restrictions, said once at the top of Settings.
+    const g = !!s.guest;
+    document.querySelectorAll(".guestHide, .guestDim").forEach((el) => el.classList.toggle("hidden", g));
+    $("guestNote").classList.toggle("hidden", !g);
+    if (g) { const h = Math.max(1, Math.ceil(s.guestLeft / 3600));
+      $("guestNote").innerHTML = "<b>Guest</b> · this phone can steer the {{kind}} for " + h + (h === 1 ? " more hour" : " more hours") + ". Settings, sleep and the screen preview stay with the owner's phones."; }
+    if (changed) { renderQuick(); if (current === "apps") renderApps(); }
+    if (current === "proj") { renderNow(); if (s.preview) previewLoop(); }
+  }
+
+  async function loadApps() {
+    try { const r = await api("/api/apps"); if (r.ok) apps = await r.json(); } catch (e) {}
+    renderQuick();
+  }
+  async function icon(pkg) {
+    if (icons[pkg]) return icons[pkg];
+    icons[pkg] = (async () => {
+      try {
+        const r = await api("/api/icon?pkg=" + encodeURIComponent(pkg));
+        return r.ok ? URL.createObjectURL(await r.blob()) : "";
+      } catch (e) { return ""; }
+    })();
+    return icons[pkg];
+  }
+  function imgFor(pkg) {
+    const img = document.createElement("img"); img.alt = "";
+    icon(pkg).then((u) => { if (u) img.src = u; else img.style.visibility = "hidden"; });
+    return img;
+  }
+
+  // ---- keys --------------------------------------------------------------------------------------------------------
+  // Repeats while a key is held wait for the previous press to arrive: on slow Wi-Fi they would otherwise queue
+  // up and the selection would keep running after the finger lifts.
+  let inFlight = 0;
+  function key(k, repeat) {
+    if (repeat && inFlight > 0) return;
+    inFlight++;
+    api("/api/key", k).catch(() => {}).finally(() => { inFlight--; });
+  }
+  let holdTimer = null;
+  function stopHold() { clearTimeout(holdTimer); clearInterval(holdTimer); holdTimer = null; }
+  document.querySelectorAll("[data-k]").forEach((b) => {
+    if (b.hasAttribute("data-hold")) {
+      // Press = one step; keep holding = repeat, like a real remote. Pointer events: finger, mouse and trackpad alike.
+      b.addEventListener("pointerdown", (e) => {
+        if (e.button > 0) return;
+        e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {}
+        key(b.dataset.k);
+        stopHold(); holdTimer = setTimeout(() => { holdTimer = setInterval(() => key(b.dataset.k, true), 140); }, 420);
+      });
+      ["pointerup", "pointercancel", "lostpointercapture"].forEach((ev) => b.addEventListener(ev, stopHold));
+      // Keyboard and accessibility "click" (no pointer): one step.
+      b.addEventListener("click", (e) => { if (e.detail === 0) key(b.dataset.k); });
+    } else {
+      b.addEventListener("click", () => key(b.dataset.k));
+    }
+  });
+  document.querySelectorAll("[data-act=projector]").forEach((b) => b.addEventListener("click", () =>
+    api("/api/projector").then((r) => toast(r.ok ? "Opened on the {{kind}}" : "Couldn't open settings")).catch(() => {})));
+
+  // ---- touchpad mode -----------------------------------------------------------------------------------------------
+  let touchMode = store.get("touchMode", false);
+  function setMode(on) {
+    touchMode = on; store.set("touchMode", on);
+    $("pad").classList.toggle("hidden", on); $("touch").classList.toggle("hidden", !on);
+    $("modeIcon").innerHTML = `<use href="#${on ? "i-dpad" : "i-touch"}"/>`;
+    $("modeBtn").setAttribute("aria-label", on ? "Buttons" : "Touchpad");
+  }
+  $("modeBtn").onclick = () => setMode(!touchMode);
+  const tp = $("touch");
+  let sx = 0, sy = 0, st = 0, moved = false, last = null, rep = null;
+  const STEP = 42;
+  function flash() { tp.classList.add("flash"); setTimeout(() => tp.classList.remove("flash"), 90); }
+  function stopRep() { clearTimeout(rep); clearInterval(rep); rep = null; }
+  // Pointer events, so a finger, a mouse drag or a trackpad drag all work.
+  let down = false, longTimer = null, longDone = false;
+  // Two fingers: up and down a page at a time. A finger held still: a long press of OK.
+  const fingers = new Map(); let twoY = null;
+  const avgY = () => [...fingers.values()].reduce((a, b) => a + b, 0) / fingers.size;
+  tp.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    fingers.set(e.pointerId, e.clientY);
+    if (fingers.size === 2) { clearTimeout(longTimer); stopRep(); down = false; twoY = avgY(); e.preventDefault(); return; }
+    down = true; sx = e.clientX; sy = e.clientY; st = Date.now(); moved = false; longDone = false; stopRep();
+    clearTimeout(longTimer);
+    longTimer = setTimeout(() => { if (down && !moved) { longDone = true; flash(); haptic(); key("longok"); } }, 600);
+    try { tp.setPointerCapture(e.pointerId); } catch (x) {}
+    e.preventDefault();
+  });
+  tp.addEventListener("pointermove", (e) => {
+    if (fingers.has(e.pointerId)) fingers.set(e.pointerId, e.clientY);
+    if (twoY !== null && fingers.size >= 2) {
+      const dy = avgY() - twoY;
+      if (Math.abs(dy) > 60) { twoY = avgY(); flash(); haptic(); key(dy > 0 ? "pageup" : "pagedown"); }
+      return;
+    }
+    if (!down) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) < STEP && Math.abs(dy) < STEP) return;
+    last = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+    sx = e.clientX; sy = e.clientY; moved = true; flash(); haptic(); key(last);
+    stopRep(); rep = setTimeout(() => { rep = setInterval(() => key(last, true), 150); }, 450);
+  });
+  function endTouch(e) {
+    fingers.delete(e.pointerId); if (fingers.size < 2) twoY = null;
+    clearTimeout(longTimer);
+    if (!down) return;
+    down = false; stopRep();
+    if (!moved && !longDone && Date.now() - st < 400) { flash(); key("ok"); }
+  }
+  tp.addEventListener("pointerup", endTouch);
+  tp.addEventListener("pointercancel", (e) => { fingers.delete(e.pointerId); twoY = null; clearTimeout(longTimer); down = false; stopRep(); });
+
+  // ---- quick apps --------------------------------------------------------------------------------------------------
+  // Until the person picks their own: the first three of these that are installed, else the first three apps.
+  const COMMON = ["com.google.android.youtube.tv", "com.google.android.youtube", "com.netflix.ninja", "com.netflix.mediaclient",
+    "com.amazon.amazonvideo.livingroom", "com.amazon.avod.thirdpartyclient", "com.disney.disneyplus", "in.startv.hotstar",
+    "com.spotify.tv.android", "org.videolan.vlc", "com.plexapp.android", "org.xbmc.kodi"];
+  function quickList() {
+    const own = store.get("quick", null);
+    if (own) return own;
+    const have = COMMON.filter((p) => labelOf(p));
+    const pick = have.slice(0, 4);
+    for (const a of apps) if (pick.length < 4 && !pick.includes(a.pkg)) pick.push(a.pkg);
+    return pick;
+  }
+  function labelOf(pkg) { const a = apps.find((x) => x.pkg === pkg); return a ? a.label : null; }
+  function launch(pkg) {
+    api("/api/launch", pkg).then((r) => {
+      if (!r.ok) return toast("Couldn't open it");
+      const rec = store.get("recent", []).filter((p) => p !== pkg); rec.unshift(pkg); store.set("recent", rec.slice(0, 8));
+      toast("Opening " + (labelOf(pkg) || "app")); setTimeout(refresh, 1500);
+    }).catch(() => {});
+  }
+  function eq() { const s = document.createElement("span"); s.className = "eq"; s.setAttribute("aria-hidden", "true"); s.innerHTML = "<span></span><span></span><span></span>"; return s; }
+  function renderQuick() {
+    const box = $("quick"); box.innerHTML = "";
+    const list = quickList().filter((p) => labelOf(p)).slice(0, 4);
+    for (const pkg of list) {
+      const b = document.createElement("button"); b.className = "key qa"; b.type = "button";
+      const now = state.current && state.current.pkg === pkg;
+      if (now) b.classList.add("now");
+      b.appendChild(imgFor(pkg));
+      const l = document.createElement("span"); l.className = "lbl"; l.textContent = labelOf(pkg); b.appendChild(l);
+      if (now) b.appendChild(eq());
+      b.onclick = () => launch(pkg);
+      box.appendChild(b);
+    }
+  }
+  // ---- projector tab: now playing, preview, volume, link, timer, other screens ------------------------------------
+  const fmt = (ms) => { const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, x = String(t % 60).padStart(2, "0");
+    return h ? h + ":" + String(m).padStart(2, "0") + ":" + x : m + ":" + x; };
+  let seeking = false, artKey = null, mediaAt = 0;
+  function setFill(r) { const max = Number(r.max) || 1; r.style.setProperty("--p", (Number(r.value) / max * 100) + "%"); }
+  async function loadArt(key) {
+    if (key === artKey) return; artKey = key;
+    const img = $("npArt");
+    if (!key) { img.classList.add("hidden"); return; }
+    try { const r = await api("/api/art"); if (!r.ok) throw 0; const old = img.src; img.src = URL.createObjectURL(await r.blob()); img.classList.remove("hidden"); if (old.startsWith("blob:")) URL.revokeObjectURL(old); }
+    catch (e) { img.classList.add("hidden"); }
+  }
+  function renderNow() {
+    const m = state.media;
+    $("npMedia").classList.toggle("hidden", !m);
+    $("npOff").classList.toggle("hidden", !!m || state.mediaAllowed !== false || !state.current);
+    if (m) {
+      mediaAt = Date.now();
+      $("npLabel").textContent = "Now playing";
+      $("npTitle").textContent = m.title || m.app;
+      $("npSub").textContent = [m.artist, m.app].filter(Boolean).join(" · ");
+      $("npToggle").innerHTML = `<svg width="24" height="24" fill="${m.playing ? "#F4F2F8" : "none"}" stroke="#F4F2F8" stroke-width="1.9" stroke-linejoin="round">${m.playing ? '<path d="M7 5h3v14H7z M14 5h3v14h-3z"/>' : '<path d="M7 4l13 8-13 8z"/>'}</svg>`;
+      loadArt(m.art || null);
+      tick();
+    } else {
+      loadArt(null);
+      $("npLabel").textContent = "Now showing";
+      $("npTitle").textContent = state.current ? state.current.label : "Home screen";
+      $("npSub").textContent = "";
+    }
+    const v = $("volRange");
+    $("volWrap").classList.toggle("hidden", state.vol === undefined);
+    if (state.vol !== undefined && document.activeElement !== v) {
+      v.max = state.volMax; v.value = state.vol; $("volNum").textContent = state.muted ? "Mute" : state.vol; setFill(v);
+    }
+    $("timerWrap").classList.toggle("hidden", !state.canSleep || !!state.guest);
+    const left = state.sleepIn || 0;
+    const span = (left >= 3600 ? Math.floor(left / 3600) + " h " : "") + Math.ceil(left % 3600 / 60) + " min";
+    $("timerLeft").textContent = left ? "· sleeps in " + span : "";
+    $("timerRow").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", !left && c.dataset.timer === "0"));
+    const others = state.others || [];
+    $("othersWrap").classList.toggle("hidden", !others.length);
+    const list = $("others"); list.innerHTML = "";
+    for (const o of others) {
+      const b = document.createElement("a"); b.className = "item press"; b.href = o.url + "#pair"; b.style.cssText = "color:inherit;text-decoration:none";
+      b.innerHTML = '<svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-proj"/></svg><div class="grow"></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg>';
+      b.querySelector(".grow").textContent = o.name; list.appendChild(b);
+    }
+    $("prevWrap").classList.toggle("hidden", !state.preview);
+    const u = $("updateNote");
+    u.classList.toggle("hidden", !state.update);
+    if (state.update) { u.innerHTML = "<b>{{app}} " + state.update.replace(/[^0-9.]/g, "") + " is available.</b> "; const a = document.createElement("a"); a.href = state.updateUrl; a.target = "_blank"; a.rel = "noopener"; a.textContent = "What's new"; u.appendChild(a); }
+  }
+  // Position moves on between refreshes while playing.
+  function tick() {
+    const m = state.media; if (!m || seeking) return;
+    const pos = m.pos + (m.playing ? Date.now() - mediaAt : 0), dur = m.dur || 0;
+    const r = $("npSeek"); r.disabled = !dur || m.canSeek === false;
+    r.max = Math.max(1, Math.round(dur / 1000)); r.value = Math.min(r.max, Math.round(pos / 1000)); setFill(r);
+    $("npPos").textContent = fmt(Math.min(pos, dur || pos)); $("npDur").textContent = dur ? fmt(dur) : "";
+  }
+  setInterval(() => { if (current === "proj" && !document.hidden) tick(); }, 1000);
+  $("npSeek").addEventListener("input", (e) => { seeking = true; setFill(e.target); $("npPos").textContent = fmt(e.target.value * 1000); });
+  $("npSeek").addEventListener("change", async (e) => {
+    try { await api("/api/seek", String(e.target.value)); if (state.media) { state.media.pos = e.target.value * 1000; mediaAt = Date.now(); } } catch (x) {}
+    seeking = false; setTimeout(() => refresh().catch(() => {}), 600);
+  });
+  document.querySelectorAll("[data-media]").forEach((b) => b.addEventListener("click", async () => {
+    try { const r = await api("/api/media", b.dataset.media); if (!r.ok) toast("Nothing is playing"); } catch (e) {}
+    setTimeout(() => refresh().catch(() => {}), 500);
+  }));
+  $("volRange").addEventListener("input", (e) => { const v = e.target; if (state.volCap !== undefined && Number(v.value) > state.volCap) v.value = state.volCap; $("volNum").textContent = v.value; setFill(v); });
+  $("volRange").addEventListener("change", (e) => { api("/api/volume", String(e.target.value)).catch(() => {}); e.target.blur(); });
+  $("linkForm").onsubmit = (e) => { e.preventDefault(); sendLink($("linkInput").value); };
+  async function sendLink(text) {
+    const m = String(text || "").match(/https?:\/\/\S+/);
+    if (!m) return toast("That is not a web link");
+    try {
+      const r = await api("/api/link", m[0]);
+      if (r.ok) { toast("Opening on the {{kind}}"); $("linkInput").value = ""; $("linkInput").blur(); }
+      else toast("No app on the {{kind}} opens that link");
+    } catch (e) {}
+  }
+  document.querySelectorAll("[data-timer]").forEach((b) => b.addEventListener("click", async () => {
+    const n = b.dataset.timer;
+    try {
+      const r = await api("/api/sleeptimer", n);
+      if (r.ok) toast(n === "0" ? "Sleep timer off" : "The {{kind}} sleeps in " + b.textContent);
+      refresh().catch(() => {});
+    } catch (e) {}
+  }));
+  // The screen picture, while this tab is open and the owner allows it.
+  let previewOn = false;
+  async function previewLoop() {
+    if (previewOn) return; previewOn = true;
+    while (current === "proj" && state.preview && token) {
+      if (!document.hidden) {
+        try {
+          const r = await api("/api/screen");
+          if (r.ok) { const img = $("prevImg"), old = img.src; img.src = URL.createObjectURL(await r.blob()); if (old.startsWith("blob:")) URL.revokeObjectURL(old); }
+        } catch (e) {}
+      }
+      await new Promise((res) => setTimeout(res, 1500));
+    }
+    previewOn = false;
+  }
+
+  // ---- apps tab ----------------------------------------------------------------------------------------------------
+  function renderApps() {
+    const recent = store.get("recent", []).filter((p) => labelOf(p));
+    $("recentWrap").classList.toggle("hidden", recent.length === 0 || editing);
+    const rbox = $("recent"); rbox.innerHTML = "";
+    for (const pkg of recent) {
+      const b = document.createElement("button"); b.className = "chip press"; b.type = "button";
+      b.appendChild(imgFor(pkg)); b.appendChild(document.createTextNode(labelOf(pkg)));
+      b.onclick = () => launch(pkg); rbox.appendChild(b);
+    }
+    $("appsLabel").textContent = editing ? "Tap to choose up to 4 quick apps" : "On the {{kind}}";
+    $("editQuick").textContent = editing ? "Done" : "Edit quick apps";
+    const grid = $("grid"); grid.innerHTML = "";
+    const quick = quickList();
+    for (const a of apps) {
+      const b = document.createElement("button"); b.className = "app-tile press"; b.type = "button";
+      if (state.current && state.current.pkg === a.pkg) b.classList.add("now");
+      b.appendChild(imgFor(a.pkg));
+      const l = document.createElement("span"); l.textContent = a.label; b.appendChild(l);
+      if (editing) {
+        const s = document.createElement("span"); s.className = "star" + (quick.includes(a.pkg) ? " on" : "");
+        s.innerHTML = '<svg width="12" height="12" fill="#141416" stroke="none"><use href="#i-star"/></svg>';
+        b.appendChild(s);
+      }
+      b.onclick = () => {
+        if (!editing) return launch(a.pkg);
+        let q = quickList();
+        if (q.includes(a.pkg)) q = q.filter((p) => p !== a.pkg);
+        else { q.push(a.pkg); if (q.length > 4) q.shift(); }
+        store.set("quick", q); renderApps(); renderQuick();
+      };
+      grid.appendChild(b);
+    }
+  }
+  $("editQuick").onclick = () => { editing = !editing; renderApps(); };
+
+  // ---- keyboard / voice / search sheet -----------------------------------------------------------------------------
+  let mode = "type";
+  function openSheet(m, voice) {
+    setSheetMode(m);
+    $("sheetHint").textContent = voice
+      ? "Tap 🎤 on the iPhone keyboard and speak." + (m === "type" ? " It goes into the {{kind}}'s selected search box." : "")
+      : (m === "type" ? "Select a search box on the {{kind}}, then type or speak." : "Results open in YouTube on the {{kind}}.");
+    $("scrim").classList.remove("hidden");
+    requestAnimationFrame(() => { $("scrim").classList.add("show"); $("sheet").classList.add("show"); });
+    $("sheetInput").value = "";
+    $("micHint").classList.add("hidden");
+    // Focus now, inside the tap: iPhone opens the keyboard (with its 🎤 key) only for a focus that comes from a tap.
+    $("sheetInput").focus();
+    if (voice) micHint();
+  }
+  function closeSheet() {
+    $("scrim").classList.remove("show"); $("sheet").classList.remove("show"); $("sheetInput").blur();
+    setTimeout(() => $("scrim").classList.add("hidden"), 250);
+  }
+  function setSheetMode(m) {
+    mode = m;
+    document.querySelectorAll("[data-mode]").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+    const cur = state.current ? state.current.label : "the {{kind}}";
+    $("sheetTitle").textContent = m === "type" ? "Type into " + cur : "Search YouTube";
+    $("sendBtn").textContent = m === "type" ? "Send" : "Search";
+    $("liveRow").classList.toggle("hidden", m !== "type");
+    renderHistory();
+  }
+  function renderHistory() {
+    const h = $("history"); h.innerHTML = "";
+    store.del("history-type");
+    for (const q of (mode === "search" ? store.get("history-search", []) : [])) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip press"; b.textContent = q;
+      b.onclick = () => { $("sheetInput").value = q; submit(); }; h.appendChild(b);
+    }
+  }
+  document.querySelectorAll("[data-sheet]").forEach((b) => b.addEventListener("click", () => {
+    const s = b.dataset.sheet;
+    // An app is open: type into it (if it has no box selected, the sheet offers a YouTube search). Home: search.
+    const wantSearch = !state.current;
+    openSheet(wantSearch && state.youtube !== false ? "search" : "type", s === "voice");
+  }));
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => setSheetMode(b.dataset.mode)));
+  $("scrim").onclick = closeSheet;
+  // Speaking: the browser's own speech recognition where it is allowed (it needs HTTPS, which a page from a device
+  // on the home network does not have, so mostly not); otherwise the keyboard's dictation key.
+  const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let listening = null;
+  function micHint() {
+    const h = $("micHint");
+    h.innerHTML = isIOS
+      ? "Tap <b>🎤</b> on the keyboard, next to the space bar, and speak. No 🎤 key? Turn on <b>Settings → General → Keyboard → Enable Dictation</b>."
+      : "Tap <b>🎤</b> on the keyboard and speak.";
+    h.classList.remove("hidden");
+  }
+  $("micBtn").onclick = () => {
+    if (listening) { listening.stop(); return; }
+    if (Speech && window.isSecureContext) {
+      try {
+        const r = new Speech(); listening = r;
+        r.lang = navigator.language || "en-US"; r.interimResults = true;
+        $("micBtn").classList.add("down");
+        r.onresult = (e) => { $("sheetInput").value = [...e.results].map((x) => x[0].transcript).join(""); };
+        r.onend = () => { listening = null; $("micBtn").classList.remove("down"); if ($("sheetInput").value.trim()) submit(); };
+        r.start();
+        return;
+      } catch (e) { listening = null; }
+    }
+    $("sheetInput").focus();
+    micHint();
+  };
+  $("clearBtn").onclick = () => { $("sheetInput").value = ""; $("sheetInput").focus(); };
+  async function submit() {
+    const v = $("sheetInput").value.trim(); if (!v) return;
+    // Only searches are remembered: typed text may be a password.
+    if (mode === "search") { const hist = store.get("history-search", []).filter((x) => x !== v); hist.unshift(v); store.set("history-search", hist.slice(0, 6)); }
+    try {
+      if (mode === "search") {
+        const r = await api("/api/search?app=youtube", v);
+        toast(r.ok ? "Searching YouTube" : "Couldn't open YouTube");
+      } else {
+        const r = await api("/api/text", v);
+        if (r.ok) { await api("/api/enter"); toast("Sent"); }
+        else if (state.youtube !== false) {
+          // Nothing to type into on the {{kind}} (Home, or a screen without a search box): the same words as a
+          // YouTube search are one tap away.
+          setSheetMode("search");
+          $("sheetHint").textContent = "No search box is selected on the {{kind}}. Tap Search to look for it on YouTube, or select a search box there first.";
+          return;
+        } else return toast("Select a search box on the {{kind}} first");
+      }
+      closeSheet();
+    } catch (e) {}
+  }
+  $("sheetForm").onsubmit = (e) => { e.preventDefault(); submit(); };
+
+  // ---- live typing --------------------------------------------------------------------------------------------------
+  let live = store.get("live", false), liveTimer = null, liveWarned = false;
+  function drawLive() { $("liveBtn").textContent = live ? "On" : "Off"; $("liveBtn").classList.toggle("on", live); }
+  drawLive();
+  $("liveBtn").onclick = () => { live = !live; store.set("live", live); drawLive(); $("sheetInput").focus(); };
+  $("sheetInput").addEventListener("input", () => {
+    if (!live || mode !== "type") return;
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(async () => {
+      try {
+        const r = await api("/api/text", $("sheetInput").value);
+        if (!r.ok && !liveWarned) { liveWarned = true; toast("Select a search box on the {{kind}} first"); }
+        if (r.ok) liveWarned = false;
+      } catch (e) {}
+    }, 250);
+  });
+
+  // ---- settings ----------------------------------------------------------------------------------------------------
+  $("diagBtn").onclick = async () => {
+    try {
+      const r = await api("/api/diag"); if (!r.ok) return toast("Not available");
+      const text = await r.text();
+      // No clipboard API on a page without HTTPS: copy through a hidden text box.
+      const t = document.createElement("textarea"); t.value = text; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+      document.body.appendChild(t); t.select(); t.setSelectionRange(0, text.length);
+      const ok = document.execCommand && document.execCommand("copy"); t.remove();
+      toast(ok ? "Copied. Paste it into your bug report." : "Couldn't copy on this browser");
+    } catch (e) {}
+  };
+  $("renameBtn").onclick = async () => {
+    const n = $("rename").value.trim(); if (!n) return;
+    const r = await api("/api/rename", n).catch(() => null);
+    if (r && r.ok) { toast("Renamed"); refresh(); } else toast("Couldn't rename");
+  };
+  $("unpairBtn").onclick = () => {
+    if (!confirm("Unpair this phone? You can pair again by scanning the QR on the {{kind}}.")) return;
+    signedFetch("/api/unpair", "").catch(() => {}).finally(() => unpaired("Unpaired. Scan the QR on the {{kind}} or use a PIN to pair again."));
+  };
+  $("devPill").onclick = () => show("proj");
+  // Sleep: a second tap within 3 s confirms, so a stray tap never switches the picture off.
+  let sleepArmed = 0;
+  $("sleepBtn").onclick = async () => {
+    if (Date.now() - sleepArmed > 3000) { sleepArmed = Date.now(); toast("Tap again to put the {{kind}} to sleep"); return; }
+    sleepArmed = 0;
+    const r = await api("/api/key", "sleep").catch(() => null);
+    toast(r && r.ok ? "Sleeping. Wake it with its own remote." : "This {{kind}} cannot be put to sleep from the phone");
+  };
+
+  // ---- pairing -----------------------------------------------------------------------------------------------------
+  // Opening the page never re-pairs a paired phone. In order: the token in this page's storage; the projector's
+  // cookie (Safari clears page storage after 7 days unused; a Home Screen icon may start with Safari's cookies);
+  // a Home Screen handoff code in the address ("#k=", single use). Only when none works does a QR scan ("#pair")
+  // put a PIN on the projector. The QR carries no secret.
+  const params = new URLSearchParams(location.search);
+  const sharedLink = ((params.get("url") || "") + " " + (params.get("text") || "")).match(/https?:\/\/\S+/)?.[0] || null;
+  if (location.search) history.replaceState(null, "", location.pathname + location.hash);
+  const hash = location.hash;
+  const fromQr = hash === "#pair";
+  const handoff = /^#k=[0-9a-f]{48}$/.test(hash) ? hash.slice(3) : null;
+  if (hash) history.replaceState(null, "", location.pathname);
+  const ua = navigator.userAgent;
+  const iosSafari = isIOS && !standalone;
+  $("phoneName").value = /iPhone/.test(ua) ? "iPhone" : isIOS ? "iPad" : /Android/.test(ua) ? "Android phone" : "Phone";
+  // This browser's own random id: pairing again from here replaces its old entry instead of adding a new one.
+  let device = store.get("device", null);
+  if (!device) {
+    const b = new Uint8Array(16); crypto.getRandomValues(b);
+    device = [...b].map((x) => x.toString(16).padStart(2, "0")).join(""); store.set("device", device);
+  }
+  function unpaired(msg) {
+    token = null; store.del("token");
+    unblocked();
+    $("pairTitle").textContent = "Pair this phone";
+    $("pairText").textContent = msg;
+    $("showPin").textContent = "Show a PIN on the {{kind}}";
+    show("pair");
+  }
+  async function trade(path, body) {
+    const r = await fetch(path, { method: "POST", body: body || "" }).catch(() => null);
+    if (!r) return { offline: true };
+    if (!r.ok) return {};
+    return { token: await r.text() };
+  }
+  // iPhone: Add to Home Screen saves the address as it is. While the "You're connected" screen shows, the address
+  // carries a fresh single-use code, so the new icon pairs itself on first launch.
+  async function prepareHomeScreen() {
+    if (!iosSafari || !token) return;
+    const r = await api("/api/handoff/new").catch(() => null);
+    if (r && r.ok) history.replaceState(null, "", location.pathname + "#k=" + (await r.text()));
+  }
+  function leaveDone() { if (location.hash) history.replaceState(null, "", location.pathname); show("remote"); }
+  async function pair(pin) {
+    const body = new URLSearchParams({ secret: pin, name: $("phoneName").value.trim() || "Phone", device }).toString();
+    const r = await fetch("/api/pair", { method: "POST", body }).catch(() => null);
+    if (r && r.ok) {
+      token = await r.text(); store.set("token", token); store.set("signed", true); $("pin").value = ""; drawPin();
+      if (iosSafari) {
+        $("doneText").innerHTML = "Keep it one tap away: tap <b>Share</b>, then <b>Add to Home Screen</b> now. The icon opens straight into the remote, no PIN.";
+        await prepareHomeScreen();
+      } else {
+        $("doneText").textContent = "This phone is now a remote for the {{kind}}. Opening this page again goes straight to the remote.";
+      }
+      show("done"); boot(); return;
+    }
+    if (r && (r.status === 409 || r.status === 423)) return closedFor(r);
+    toast(r ? "Wrong or expired PIN" : "{{Kind}} not found");
+  }
+  // The device says no new phone may pair (409: its phone limit is reached; 423: "Allow new phones" is off). The
+  // pairing screen then says so and why, instead of offering a PIN that will never come.
+  async function closedFor(r) {
+    if (r.status === 409) {
+      const n = parseInt(await r.text(), 10) || 0;
+      blocked("This {{kind}} is full",
+        "It already has " + (n === 1 ? "the 1 phone" : "all " + n + " phones") + " it allows. On the {{kind}}, open "
+        + "{{app}} and remove a phone, or raise Phone limit. Then try again.");
+    } else {
+      blocked("New phones are turned off",
+        "The owner of this {{kind}} has turned off pairing. On the {{kind}}, open {{app}} and turn on Allow new "
+        + "phones. Then try again.");
+    }
+  }
+  function blocked(title, text) {
+    $("pairTitle").textContent = title; $("pairText").textContent = text;
+    for (const id of ["phoneName", "boxes", "pairBtn"]) $(id).classList.add("hidden");
+    $("showPin").textContent = "Try again";
+  }
+  function unblocked() {
+    if (!$("pairBtn").classList.contains("hidden")) return;
+    $("pairTitle").textContent = "Pair this phone";
+    for (const id of ["phoneName", "boxes", "pairBtn"]) $(id).classList.remove("hidden");
+  }
+  async function requestPin() {
+    const r = await fetch("/api/pair/start", { method: "POST", body: new URLSearchParams({ device }).toString() }).catch(() => null);
+    if (!r) return toast("{{Kind}} not found");
+    if (r.status === 409 || r.status === 423) return closedFor(r);
+    unblocked();
+    if (r.ok) {
+      $("pairText").textContent = "A PIN is now on the {{kind}} screen. Enter it below to pair this phone.";
+      $("showPin").textContent = "Show a new PIN";
+      toast("The PIN is on the {{kind}} screen");
+    } else {
+      toast("Wait a few seconds and try again");
+    }
+    $("pin").focus();
+  }
+  $("showPin").onclick = requestPin;
+  function drawPin() {
+    const v = $("pin").value.replace(/\D/g, "").slice(0, 6); $("pin").value = v;
+    [...$("boxes").children].forEach((s, i) => { s.textContent = v[i] || ""; s.classList.toggle("cur", i === v.length && document.activeElement === $("pin")); });
+  }
+  $("pin").addEventListener("input", drawPin); $("pin").addEventListener("focus", drawPin); $("pin").addEventListener("blur", drawPin);
+  $("boxes").addEventListener("click", () => $("pin").focus());
+  $("pairBtn").onclick = () => { if ($("pin").value.length === 6) pair($("pin").value); else toast("Enter the 6 digits shown on the {{kind}}"); };
+  $("doneBtn").onclick = leaveDone;
+  if (iosSafari) $("homeBtn").classList.remove("hidden");
+  $("homeBtn").onclick = async () => {
+    $("doneText").innerHTML = "Now tap <b>Share</b>, then <b>Add to Home Screen</b>. The icon opens straight into the remote, no PIN.";
+    await prepareHomeScreen(); show("done");
+  };
+
+  // ---- start -------------------------------------------------------------------------------------------------------
+  async function boot() {
+    try { await refresh(); await loadApps(); } catch (e) {}
+  }
+  setMode(touchMode);
+  async function start() {
+    if (!token && handoff) {
+      const t = await trade("/api/handoff", handoff);
+      if (t.token) { token = t.token; store.set("token", token); }
+    }
+    if (!token) {
+      const t = await trade("/api/resume");
+      if (t.token) { token = t.token; store.set("token", token); store.set("signed", true); }
+      else if (t.offline) { show("pair"); toast("Can't reach the {{kind}}. Same Wi-Fi?"); return; }
+    }
+    if (token && !store.get("signed", false)) {
+      // Paired before requests were signed: once, move the cookie to its new, narrower place.
+      await trade("/api/resume").catch(() => null);
+      store.set("signed", true);
+    }
+    if (token) {
+      show("remote"); boot();
+      // Shared from another app (Android: Share → this remote): open the link on the {{kind}}.
+      if (sharedLink) sendLink(sharedLink);
+      return;
+    }
+    show("pair");
+    if (fromQr) requestPin();
+  }
+  start();
+  // Keeps the projector's "Connected now" and this page's "now playing" fresh while open.
+  setInterval(() => { if (token && !document.hidden && online) refresh().catch(() => {}); }, 5000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && token) refresh().catch(() => {}); });
+})();
+</script>
+</body>
+</html>

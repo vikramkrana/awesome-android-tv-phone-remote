@@ -1,0 +1,750 @@
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java b/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java
+index 7ab30bf..4fbe257 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java
+@@ -301,6 +301,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+             if (!(uniformTiles && card == null)) {
+                 banner = bundledBanner(appBanners.get(pkg));
+                 if (banner == null) banner = iconTiles.contains(pkg) ? iconBanner(ri.loadIcon(pm)) : loadBanner(pm, ri);
++                // No TV banner (a phone app): if its icon has a solid background of its own, a banner made of that
++                // background with the icon large in the middle looks like the app's own art, not a generic card.
++                if (banner == null && card == null) banner = solidIconBanner(ri.loadIcon(pm));
+             }
+             // The icon is only drawn (and sampled for the glow) when there is no banner, so a tile with a
+             // banner skips loading and decoding it.
+@@ -356,6 +359,37 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+         return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), bmp);
+     }
+ 
++    /**
++     * For an app without a banner whose icon is a filled shape (a coloured square or circle with a mark on it):
++     * a 16:9 tile in the icon's own background colour with the icon large in the middle, so the shape's edge
++     * disappears into the tile. Null for icons with a transparent background, which keep the icon-and-name tile.
++     */
++    private Drawable solidIconBanner(Drawable icon) {
++        if (icon == null) return null;
++        int n = 108;
++        android.graphics.Bitmap probe = android.graphics.Bitmap.createBitmap(n, n, android.graphics.Bitmap.Config.ARGB_8888);
++        icon.setBounds(0, 0, n, n);
++        icon.draw(new android.graphics.Canvas(probe));
++        // The middle of each edge, a little inside: inside the mask of round and squircle adaptive icons too.
++        int[] at = {probe.getPixel(n / 2, 6), probe.getPixel(n / 2, n - 7), probe.getPixel(6, n / 2), probe.getPixel(n - 7, n / 2)};
++        probe.recycle();
++        int bg = at[0];
++        for (int c : at) {
++            if (android.graphics.Color.alpha(c) < 250) return null;
++            int d = Math.abs(android.graphics.Color.red(c) - android.graphics.Color.red(bg))
++                    + Math.abs(android.graphics.Color.green(c) - android.graphics.Color.green(bg))
++                    + Math.abs(android.graphics.Color.blue(c) - android.graphics.Color.blue(bg));
++            if (d > 36) return null;   // edges differ: a picture, not a plain background
++        }
++        int w = 320, h = 180, side = 172;
++        android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
++        android.graphics.Canvas canvas = new android.graphics.Canvas(bmp);
++        canvas.drawColor(bg | 0xFF000000);
++        icon.setBounds((w - side) / 2, (h - side) / 2, (w + side) / 2, (h + side) / 2);
++        icon.draw(canvas);
++        return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), bmp);
++    }
++
+     /** A banner_* drawable bundled with the launcher, or null for none or a name that is not one. */
+     private Drawable bundledBanner(String name) {
+         if (name == null || !name.startsWith("banner_")) return null;
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java b/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java
+index d56e19f..308f198 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java
+@@ -228,6 +228,7 @@ final class ClockScene {
+     }
+ 
+     private void moveClock() {
++        if (centered()) return;   // a centred clock stays put; only the glow changes
+         content.animate().alpha(0f).setDuration(900).withLayer().withEndAction(() -> {
+             placeClock();
+             content.animate().alpha(1f).setDuration(1200).withLayer().start();
+@@ -235,8 +236,17 @@ final class ClockScene {
+     }
+ 
+     /** A random spot that keeps the whole clock on screen, with the glow centred behind it. */
++    /** The layout asks for the clock in the middle (tag "center") instead of drifting. */
++    private boolean centered() {
++        return "center".equals(content.getTag());
++    }
++
+     private void placeClock() {
+         View parent = (View) content.getParent();
++        if (centered()) {
++            glow.setGradientCenter(0.5f, 0.5f);
++            return;
++        }
+         int maxX = Math.max(0, parent.getWidth() - content.getWidth());
+         int maxY = Math.max(0, parent.getHeight() - content.getHeight());
+         float x = maxX * (0.1f + 0.8f * random.nextFloat());
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+index 7472dc6..9fa2c99 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -1809,6 +1809,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
+     public void onTileFocused(int position, View card) {
+         lastFocused = position;
+         lastFocusedKey = adapter.keyAt(position);
++        wallpaperPlayer.followApp(lastFocusedKey == null ? null : String.valueOf(lastFocusedKey),
++                adapter.artworkAt(position), adapter.ambientColorAt(position));
+         // Focus restored before the first layout (cold start): the tile has no size yet, and the glass
+         // would be sized to 2*pad. Run again once the tile is laid out.
+         if (card.getWidth() == 0) {
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/MeshGradientView.java b/launcher/app/src/main/java/com/gathin/tvhome/MeshGradientView.java
+new file mode 100644
+index 0000000..c4843bb
+--- /dev/null
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MeshGradientView.java
+@@ -0,0 +1,228 @@
++package com.gathin.tvhome;
++
++import android.content.Context;
++import android.graphics.Bitmap;
++import android.graphics.Canvas;
++import android.graphics.Color;
++import android.graphics.Paint;
++import android.graphics.drawable.Drawable;
++import android.graphics.Rect;
++import android.os.SystemClock;
++import android.view.View;
++
++/**
++ * A slowly moving mesh gradient: a few soft colour blobs drift over a dark base, like the ambient backdrops of
++ * macOS and Apple TV. It is computed on the CPU into a tiny 160x90 bitmap ten times a second and stretched to
++ * the screen with bilinear filtering, which smooths it into a gradient; no image files, shaders or blur.
++ * Runs only while Home is on screen (start/stop).
++ */
++final class MeshGradientView extends View {
++    private static final int W = 160, H = 90;
++    private static final long STEP_MS = 100L;
++
++    /** Dark base and blob colours: deep, so the white clock, names and pills keep their contrast. */
++    private static final int BASE = 0xFF05060D;
++    private static final int[] COLORS = {
++            0xFF2B1B6B,   // indigo
++            0xFF0E4D6E,   // deep teal
++            0xFF5A1A5E,   // plum
++            0xFF123A8C,   // blue
++            0xFF6B2A3A,   // wine
++    };
++    /** Per blob: orbit centre x/y, orbit radius x/y (all 0..1 of the screen), periods in seconds, phase, size. */
++    private static final float[][] ORBITS = {
++            {0.25f, 0.30f, 0.20f, 0.18f, 71f, 53f, 0.0f, 0.55f},
++            {0.75f, 0.35f, 0.22f, 0.20f, 89f, 61f, 1.3f, 0.60f},
++            {0.55f, 0.80f, 0.30f, 0.15f, 67f, 97f, 2.1f, 0.50f},
++            {0.15f, 0.85f, 0.18f, 0.22f, 101f, 79f, 3.7f, 0.45f},
++            {0.85f, 0.75f, 0.15f, 0.25f, 83f, 109f, 4.4f, 0.40f},
++    };
++
++    /** Fast steps while the colours cross-fade to a new app's palette, so the change looks fluid. */
++    private static final long FADE_STEP_MS = 33L;
++    private static final long FADE_MS = 1200L;
++
++    /** Blob colours on screen now, the palette they fade from and to, and when that fade began (0 = none). */
++    private final int[] colors = COLORS.clone();
++    private final int[] fromColors = COLORS.clone();
++    private final int[] toColors = COLORS.clone();
++    private long fadeStart;
++    private String paletteKey = "";
++    private final java.util.Map<String, int[]> paletteCache = new java.util.HashMap<>();
++
++    private final Bitmap bitmap = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
++    private final int[] pixels = new int[W * H];
++    private final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
++    private final Rect src = new Rect(0, 0, W, H);
++    private final Rect dst = new Rect();
++    private final float[] bx = new float[ORBITS.length], by = new float[ORBITS.length];
++    private final long origin = SystemClock.uptimeMillis();
++    private boolean running;
++    private final Runnable tick = new Runnable() {
++        @Override public void run() {
++            if (!running) return;
++            boolean fading = advanceFade();
++            render();
++            invalidate();
++            postDelayed(this, fading ? FADE_STEP_MS : STEP_MS);
++        }
++    };
++
++    MeshGradientView(Context context) {
++        super(context);
++        setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
++        setFocusable(false);
++        render();
++    }
++
++    void start() {
++        if (running) return;
++        running = true;
++        post(tick);
++    }
++
++    void stop() {
++        running = false;
++        removeCallbacks(tick);
++    }
++
++    /**
++     * Fades the blobs to colours taken from the focused app's artwork. key identifies the app, so focusing the same
++     * tile again (layout passes call this repeatedly) neither restarts the fade nor samples the artwork again.
++     */
++    void followApp(String key, Drawable artwork, int accent) {
++        if (key == null || key.equals(paletteKey)) return;
++        paletteKey = key;
++        int[] palette = paletteCache.get(key);
++        if (palette == null) {
++            palette = paletteFrom(artwork, accent);
++            paletteCache.put(key, palette);
++        }
++        System.arraycopy(colors, 0, fromColors, 0, colors.length);
++        System.arraycopy(palette, 0, toColors, 0, toColors.length);
++        fadeStart = SystemClock.uptimeMillis();
++        if (running) {
++            removeCallbacks(tick);
++            post(tick);
++        } else {
++            // Home not on screen yet (first focus at start): show the palette at once.
++            System.arraycopy(palette, 0, colors, 0, colors.length);
++            fadeStart = 0;
++            render();
++            invalidate();
++        }
++    }
++
++    /** One step of the colour fade; false once there is none running. */
++    private boolean advanceFade() {
++        if (fadeStart == 0) return false;
++        float t = Math.min(1f, (SystemClock.uptimeMillis() - fadeStart) / (float) FADE_MS);
++        float e = t * t * (3f - 2f * t);
++        for (int i = 0; i < colors.length; i++) colors[i] = mix(fromColors[i], toColors[i], e);
++        if (t >= 1f) fadeStart = 0;
++        return true;
++    }
++
++    private static int mix(int a, int b, float t) {
++        int r = Math.round(((a >> 16) & 0xFF) + (((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * t);
++        int g = Math.round(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * t);
++        int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * t);
++        return 0xFF000000 | (r << 16) | (g << 8) | bl;
++    }
++
++    /**
++     * Five blob colours from an app's banner or icon: the most vivid colour of each quarter of the artwork plus the
++     * launcher's accent for the app. A quarter with no real colour (white, grey or black areas) takes the accent
++     * with its hue turned a little, so a mostly white banner still gives a rich, single-hue mesh. All are darkened
++     * so the clock, the names and the white pills stay readable over them.
++     */
++    static int[] paletteFrom(Drawable live, int accent) {
++        int[] out = new int[COLORS.length];
++        int[] vivid = {0, 0, 0, 0};
++        if (live != null) {
++            Drawable d = live.getConstantState() != null ? live.getConstantState().newDrawable().mutate() : live;
++            Rect saved = new Rect(d.getBounds());
++            int n = 16;
++            Bitmap bmp = Bitmap.createBitmap(n, n / 2, Bitmap.Config.ARGB_8888);
++            Canvas c = new Canvas(bmp);
++            d.setBounds(0, 0, n, n / 2);
++            d.draw(c);
++            d.setBounds(saved);
++            int[] px = new int[n * n / 2];
++            bmp.getPixels(px, 0, n, 0, 0, n, n / 2);
++            bmp.recycle();
++            float[] best = new float[4];
++            for (int y = 0; y < n / 2; y++) {
++                for (int x = 0; x < n; x++) {
++                    int p = px[y * n + x];
++                    if (((p >>> 24) & 0xFF) < 128) continue;   // transparent corners of an icon
++                    int q = (y < n / 4 ? 0 : 2) + (x < n / 2 ? 0 : 1);
++                    int pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = p & 0xFF;
++                    int max = Math.max(pr, Math.max(pg, pb)), min = Math.min(pr, Math.min(pg, pb));
++                    float sat = max == 0 ? 0f : (max - min) / (float) max;
++                    float score = sat * Math.min(1f, max / 255f * 1.4f);
++                    if (score > best[q]) {
++                        best[q] = score;
++                        vivid[q] = p;
++                    }
++                }
++            }
++            for (int q = 0; q < 4; q++) if (best[q] < 0.3f) vivid[q] = 0;
++        }
++        float[] hsv = new float[3];
++        for (int i = 0; i < 4; i++) {
++            int source = vivid[i] != 0 ? vivid[i] : accent;
++            Color.colorToHSV(source, hsv);
++            if (vivid[i] == 0) hsv[0] = (hsv[0] + (i - 1.5f) * 18f + 360f) % 360f;   // a family of hues
++            out[i] = deepen(hsv);
++        }
++        Color.colorToHSV(accent, hsv);
++        out[4] = deepen(hsv);
++        return out;
++    }
++
++    /** Dark and rich: enough colour to read as the app, dark enough for white text on top. */
++    private static int deepen(float[] hsv) {
++        hsv[1] = Math.max(0.55f, Math.min(0.9f, hsv[1]));
++        hsv[2] = Math.max(0.28f, Math.min(0.46f, hsv[2] * 0.55f));
++        return Color.HSVToColor(hsv);
++    }
++
++    private void render() {
++        float seconds = (SystemClock.uptimeMillis() - origin) / 1000f;
++        for (int i = 0; i < ORBITS.length; i++) {
++            float[] o = ORBITS[i];
++            bx[i] = (o[0] + o[2] * (float) Math.sin(2 * Math.PI * seconds / o[4] + o[6])) * W;
++            by[i] = (o[1] + o[3] * (float) Math.cos(2 * Math.PI * seconds / o[5] + o[6] * 0.7f)) * H;
++        }
++        int baseR = (BASE >> 16) & 0xFF, baseG = (BASE >> 8) & 0xFF, baseB = BASE & 0xFF;
++        for (int y = 0; y < H; y++) {
++            for (int x = 0; x < W; x++) {
++                float r = baseR, g = baseG, b = baseB;
++                for (int i = 0; i < ORBITS.length; i++) {
++                    float dx = (x - bx[i]) / W, dy = (y - by[i]) / H * 0.5625f;   // keep blobs round on 16:9
++                    float size = ORBITS[i][7];
++                    float w = 1f - (dx * dx + dy * dy) / (size * size * 0.25f);
++                    if (w <= 0f) continue;
++                    w = w * w * (3f - 2f * w);   // smoothstep falloff: soft edges, no rings
++                    int c = colors[i];
++                    r += (((c >> 16) & 0xFF) - r) * w * 0.85f;
++                    g += (((c >> 8) & 0xFF) - g) * w * 0.85f;
++                    b += ((c & 0xFF) - b) * w * 0.85f;
++                }
++                pixels[y * W + x] = 0xFF000000 | ((int) r << 16) | ((int) g << 8) | (int) b;
++            }
++        }
++        bitmap.setPixels(pixels, 0, W, 0, 0, W, H);
++    }
++
++    @Override protected void onDraw(Canvas canvas) {
++        dst.set(0, 0, getWidth(), getHeight());
++        canvas.drawBitmap(bitmap, src, dst, paint);
++    }
++
++    @Override protected void onDetachedFromWindow() {
++        stop();
++        super.onDetachedFromWindow();
++    }
++}
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/WallpaperPlayer.java b/launcher/app/src/main/java/com/gathin/tvhome/WallpaperPlayer.java
+index 8da8dfa..28912a9 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/WallpaperPlayer.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/WallpaperPlayer.java
+@@ -1,6 +1,12 @@
+ package com.gathin.tvhome;
+ 
+ import android.content.Context;
++import android.os.SystemClock;
++import android.content.res.Resources;
++import android.graphics.drawable.BitmapDrawable;
++import android.graphics.drawable.Drawable;
++import android.graphics.drawable.TransitionDrawable;
++import android.view.animation.AccelerateDecelerateInterpolator;
+ import android.content.SharedPreferences;
+ import android.graphics.Bitmap;
+ import android.graphics.BitmapFactory;
+@@ -61,9 +67,29 @@ final class WallpaperPlayer {
+     private final String latitude, longitude;
+     private LocalDate sunDay;
+     private int[] sun;
++    /** config.xml wallpaper_motion: a slow pan-and-zoom drift over the picture and a cross-fade between pictures. */
++    private final boolean motion;
++    private final Resources resources;
++    /** Drift clock: milliseconds of drift played so far, and the uptime it last advanced at (0 = paused). */
++    private long driftElapsed;
++    private long driftResumedAt;
++    private boolean drifting;
++    /** Flips with every new picture so the drift does not always travel the same way. */
++    private float driftDirection = 1f;
++    private static final long DRIFT_MS = 40_000L;
++    /**
++     * The drift moves about a pixel a second, so 10 steps a second look as smooth as 60 and cost a sixth of the
++     * frames: a projector's CPU and fan stay calm while Home sits idle.
++     */
++    private static final long DRIFT_STEP_MS = 100L;
++    private final AccelerateDecelerateInterpolator driftEase = new AccelerateDecelerateInterpolator();
++    private final Runnable driftTick = this::driftStep;
++    private static final int CROSSFADE_MS = 1600;
+ 
+     WallpaperPlayer(Context context, FrameLayout root, Config config) {
+         this.root = root;
++        resources = context.getResources();
++        motion = resources.getBoolean(R.bool.wallpaper_motion) && config.animations && !config.reducedMotion;
+         backgroundColor = config.backgroundColor;
+         files = new ArrayList<>(config.wallpapers);
+         interval = config.wallpaperRotationMinutes * 60_000L;
+@@ -95,9 +121,26 @@ final class WallpaperPlayer {
+             root.addView(image, 0, new FrameLayout.LayoutParams(
+                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+             showFirst();
++            mesh = null;
++        } else if (resources.getBoolean(R.bool.mesh_background)) {
++            // No pictures: the moving mesh gradient is the backdrop instead of the plain colour.
++            mesh = new MeshGradientView(context);
++            root.addView(mesh, 0, new FrameLayout.LayoutParams(
++                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
++            root.setBackground(null);
++        } else {
++            mesh = null;
+         }
+     }
+ 
++    /** config.xml mesh_background, shown when the theme has no wallpaper; null otherwise. */
++    private final MeshGradientView mesh;
++
++    /** The mesh takes its colours from the focused app's artwork; nothing happens with a picture wallpaper. */
++    void followApp(String key, android.graphics.drawable.Drawable artwork, int accent) {
++        if (mesh != null) mesh.followApp(key, artwork, accent);
++    }
++
+     /**
+      * The picture Home opens with is decoded right here, on the main thread, as the single wallpaper always was:
+      * Home's first frame already has it instead of drawing the plain colour and the picture popping in later.
+@@ -130,11 +173,51 @@ final class WallpaperPlayer {
+ 
+     void start() {
+         active = true;
++        if (mesh != null) mesh.start();
+         update();
++        startDrift();
+     }
+ 
+     void stop() {
+         active = false;
++        if (mesh != null) mesh.stop();
++        // Nothing moves behind an app: the drift only runs while Home is on screen.
++        pauseDrift();
++    }
++
++    private void pauseDrift() {
++        if (!drifting) return;
++        drifting = false;
++        driftElapsed += SystemClock.uptimeMillis() - driftResumedAt;
++        image.removeCallbacks(driftTick);
++    }
++
++    private void driftStep() {
++        if (!drifting) return;
++        long now = SystemClock.uptimeMillis();
++        long played = driftElapsed + (now - driftResumedAt);
++        // 0 -> 1 over DRIFT_MS, then back: a ping-pong like ValueAnimator.REVERSE.
++        long cycle = played % (2 * DRIFT_MS);
++        float linear = cycle < DRIFT_MS ? cycle / (float) DRIFT_MS : 2f - cycle / (float) DRIFT_MS;
++        float t = driftEase.getInterpolation(linear);
++        float scale = 1.08f + 0.06f * t;              // 108% -> 114%: always enough margin for the pan
++        image.setScaleX(scale);
++        image.setScaleY(scale);
++        image.setTranslationX(driftDirection * (t - 0.5f) * 0.05f * width);   // +-2.5% of the width
++        image.setTranslationY((0.5f - t) * 0.03f * height);                    // +-1.5% of the height
++        image.postDelayed(driftTick, DRIFT_STEP_MS);
++    }
++
++    /**
++     * Ken Burns style drift: the picture is enlarged a little and pans slowly across, then back. Only the image
++     * view's scale and translation change, which the renderer applies to the already-uploaded texture, so no
++     * bitmap is redrawn or decoded per frame.
++     */
++    private void startDrift() {
++        if (!motion || current == null || closed || !active || drifting) return;
++        drifting = true;
++        driftResumedAt = SystemClock.uptimeMillis();
++        driftStep();
+     }
+ 
+     /** Drops the wallpaper texture when Home is hidden and Android asks the process to free memory. */
+@@ -162,6 +245,8 @@ final class WallpaperPlayer {
+     void close() {
+         active = false;
+         closed = true;
++        pauseDrift();
++        if (mesh != null) mesh.stop();
+         decoder.shutdownNow();
+     }
+ 
+@@ -265,8 +350,25 @@ final class WallpaperPlayer {
+         current = bitmap;
+         // The wallpaper covers the whole root; avoid drawing the fallback colour under it.
+         root.setBackground(null);
++        if (motion && old != null && old != bitmap && !old.isRecycled()) {
++            // Cross-fade from the old picture to the new one, then hand the view the plain bitmap again so the
++            // old one can be released.
++            TransitionDrawable fade = new TransitionDrawable(new Drawable[] {
++                    new BitmapDrawable(resources, old), new BitmapDrawable(resources, bitmap)});
++            fade.setCrossFadeEnabled(true);
++            image.setImageDrawable(fade);
++            fade.startTransition(CROSSFADE_MS);
++            driftDirection = -driftDirection;
++            image.postDelayed(() -> {
++                if (image.getDrawable() == fade && current == bitmap) image.setImageBitmap(bitmap);
++                if (image.getDrawable() != fade) image.postDelayed(old::recycle, 500);
++            }, CROSSFADE_MS + 200);
++            startDrift();
++            return;
++        }
+         image.setImageBitmap(bitmap);
+         if (old != null && old != bitmap) image.postDelayed(old::recycle, 500);
++        startDrift();
+     }
+ 
+     private Bitmap decode(File file) {
+diff --git a/launcher/app/src/main/res/layout-iw/dream_clock.xml b/launcher/app/src/main/res/layout-iw/dream_clock.xml
+index fb4cd78..f91acfd 100644
+--- a/launcher/app/src/main/res/layout-iw/dream_clock.xml
++++ b/launcher/app/src/main/res/layout-iw/dream_clock.xml
+@@ -1,5 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<!-- Hebrew screensaver: right-aligned clock/date, RTL date text, LTR time numerals. -->
++<!-- Screensaver (ClockDream) and idle clock (ClockActivity): a large thin clock with ticking seconds and the date,
++     centred over an ambient glow. A projector cannot burn in, so the clock stays put. -->
+ <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+@@ -15,11 +16,12 @@
+ 
+     <LinearLayout
+         android:id="@+id/dreamContent"
+-        android:layoutDirection="rtl"
+-        android:gravity="right"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+-        android:orientation="vertical">
++        android:layout_gravity="center"
++        android:gravity="center_horizontal"
++        android:orientation="vertical"
++        android:tag="center">
+ 
+         <LinearLayout
+             android:layout_width="wrap_content"
+@@ -29,10 +31,33 @@
+             android:baselineAligned="true">
+ 
+             <TextClock
+-                android:id="@+id/dreamAmPm"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+-                android:layout_marginEnd="10dp"
++                android:format12Hour="h:mm"
++                android:format24Hour="HH:mm"
++                android:textColor="#F2FFFFFF"
++                android:textSize="150sp"
++                android:fontFamily="@string/font_extralight"
++                android:letterSpacing="-0.03"
++                android:includeFontPadding="false" />
++
++            <!-- Seconds: a fixed width per digit pair, so the clock does not jiggle as they change. -->
++            <TextClock
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_marginStart="14dp"
++                android:minEms="1"
++                android:format12Hour="ss"
++                android:format24Hour="ss"
++                android:fontFeatureSettings="tnum"
++                android:textColor="#FFF2A65A"
++                android:textSize="44sp"
++                android:fontFamily="@string/font_regular" />
++
++            <TextClock
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_marginStart="12dp"
+                 android:format12Hour="a"
+                 android:format24Hour=""
+                 android:textColor="#99FFFFFF"
+@@ -40,31 +65,16 @@
+                 android:fontFamily="@string/font_medium"
+                 android:letterSpacing="0.08"
+                 android:textAllCaps="true" />
+-
+-            <TextClock
+-                android:id="@+id/dreamClock"
+-                android:layout_width="wrap_content"
+-                android:layout_height="wrap_content"
+-                android:format12Hour="h:mm"
+-                android:format24Hour="HH:mm"
+-                android:textColor="#E6FFFFFF"
+-                android:textSize="120sp"
+-                android:fontFamily="@string/font_extralight"
+-                android:letterSpacing="-0.04"
+-                android:includeFontPadding="false" />
+         </LinearLayout>
+ 
+         <TextClock
+-            android:id="@+id/dreamDate"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:layout_marginTop="4dp"
+-            android:textDirection="rtl"
+-            android:gravity="right"
++            android:layout_marginTop="10dp"
+             android:format12Hour="@string/date_format"
+             android:format24Hour="@string/date_format"
+             android:textColor="#8CFFFFFF"
+-            android:textSize="18sp"
++            android:textSize="20sp"
+             android:fontFamily="@string/font_regular"
+             android:letterSpacing="0.14"
+             android:textAllCaps="true" />
+diff --git a/launcher/app/src/main/res/layout/dream_clock.xml b/launcher/app/src/main/res/layout/dream_clock.xml
+index b059bfa..f91acfd 100644
+--- a/launcher/app/src/main/res/layout/dream_clock.xml
++++ b/launcher/app/src/main/res/layout/dream_clock.xml
+@@ -1,5 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<!-- Screensaver (ClockDream): clock and date that drift around a black screen over an ambient glow. -->
++<!-- Screensaver (ClockDream) and idle clock (ClockActivity): a large thin clock with ticking seconds and the date,
++     centred over an ambient glow. A projector cannot burn in, so the clock stays put. -->
+ <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+@@ -17,12 +18,16 @@
+         android:id="@+id/dreamContent"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+-        android:orientation="vertical">
++        android:layout_gravity="center"
++        android:gravity="center_horizontal"
++        android:orientation="vertical"
++        android:tag="center">
+ 
+         <LinearLayout
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:orientation="horizontal"
++            android:layoutDirection="ltr"
+             android:baselineAligned="true">
+ 
+             <TextClock
+@@ -30,16 +35,29 @@
+                 android:layout_height="wrap_content"
+                 android:format12Hour="h:mm"
+                 android:format24Hour="HH:mm"
+-                android:textColor="#E6FFFFFF"
+-                android:textSize="120sp"
++                android:textColor="#F2FFFFFF"
++                android:textSize="150sp"
+                 android:fontFamily="@string/font_extralight"
+-                android:letterSpacing="-0.04"
++                android:letterSpacing="-0.03"
+                 android:includeFontPadding="false" />
+ 
++            <!-- Seconds: a fixed width per digit pair, so the clock does not jiggle as they change. -->
+             <TextClock
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+-                android:layout_marginStart="10dp"
++                android:layout_marginStart="14dp"
++                android:minEms="1"
++                android:format12Hour="ss"
++                android:format24Hour="ss"
++                android:fontFeatureSettings="tnum"
++                android:textColor="#FFF2A65A"
++                android:textSize="44sp"
++                android:fontFamily="@string/font_regular" />
++
++            <TextClock
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_marginStart="12dp"
+                 android:format12Hour="a"
+                 android:format24Hour=""
+                 android:textColor="#99FFFFFF"
+@@ -52,12 +70,11 @@
+         <TextClock
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:layout_marginStart="6dp"
+-            android:layout_marginTop="4dp"
++            android:layout_marginTop="10dp"
+             android:format12Hour="@string/date_format"
+             android:format24Hour="@string/date_format"
+             android:textColor="#8CFFFFFF"
+-            android:textSize="18sp"
++            android:textSize="20sp"
+             android:fontFamily="@string/font_regular"
+             android:letterSpacing="0.14"
+             android:textAllCaps="true" />
+diff --git a/launcher/app/src/main/res/values/config.xml b/launcher/app/src/main/res/values/config.xml
+index 71c3487..67b4f50 100644
+--- a/launcher/app/src/main/res/values/config.xml
++++ b/launcher/app/src/main/res/values/config.xml
+@@ -17,10 +17,14 @@
+ 
+     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
+     <string-array name="dock_apps">
+-        <item>com.netflix.ninja</item>
+-        <item>com.amazon.amazonvideo.livingroom</item>
+         <item>com.google.android.youtube.tv</item>
+         <item>in.startv.hotstar</item>
++        <item>com.amazon.amazonvideo.livingroom</item>
++        <item>com.netflix.ninja</item>
++        <item>com.android.vending</item>
++        <item>com.airplay.mirror</item>
++        <item>com.mediatek.miracast</item>
++        <item>com.jrm.localmm</item>
+     </string-array>
+     <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
+          the first grid apps, so the dock never shows a gap. false leaves them empty (#162); a theme can
+@@ -31,6 +35,7 @@
+     <string-array name="hidden_apps">
+         <item>com.mediatek.wwtv.tvcenter</item>
+         <item>com.mitv.gallery</item>
++        <item>com.zeasn.whale.saas</item>
+     </string-array>
+ 
+     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
+@@ -88,6 +93,10 @@
+ 
+     <!-- A tile's name instead of the app's own: "package=Name". It also shows above the dock. -->
+     <string-array name="app_labels">
++        <item>com.airplay.mirror=AirPlay</item>
++        <item>com.mediatek.miracast=Miracast</item>
++        <item>com.jrm.localmm=USB Media</item>
++        <item>com.joyar.general.settings=Projector</item>
+     </string-array>
+     <!-- A tile's artwork instead of the app's banner: "package=drawable", a banner_* drawable bundled with the
+          launcher (res/drawable). banner_tv is a magenta field with the Live TV glyph. -->
+@@ -396,6 +405,13 @@
+          pictures in wallpapers/ ("01-dusk.jpg<TAB>Dusk over the peaks", one per line). A picture without a line
+          shows no name. Can also be set with "wallpaper_captions": true in a theme's config.json. -->
+     <bool name="wallpaper_captions">false</bool>
++
++    <!-- Slow pan-and-zoom drift over the wallpaper while Home is on screen, and a cross-fade when a rotation
++         changes the picture. Off with animations off or reduced_motion. -->
++    <bool name="wallpaper_motion">true</bool>
++    <!-- With no wallpaper pictures, a slowly moving mesh gradient (soft colour blobs on a dark base) instead
++         of the plain background colour. Runs only while Home is on screen. -->
++    <bool name="mesh_background">true</bool>
+     <!-- Rotating wallpapers grouped by the time of day, as JSON: {"morning": [file names], "evening": [...],
+          "night": [...]}. While set, the rotation picks only from the group that fits now: morning from sunrise to
+          noon, evening until half an hour after sunset, night the rest, with the sun at latitude and longitude (07:00
+@@ -418,7 +434,7 @@
+ 
+     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
+          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
+-    <integer name="columns">4</integer>
++    <integer name="columns">7</integer>
+ 
+     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
+     <bool name="animations">true</bool>
+@@ -429,7 +445,7 @@
+     <bool name="show_home_settings_shortcut">false</bool>
+ 
+     <!-- Installed launchable apps, including ordinary Android apps. Also settable in config.json. -->
+-    <bool name="app_library">false</bool>
++    <bool name="app_library">true</bool>
+     <!-- Every app tile is its icon on a card tinted from that icon, name only under the focused tile,
+          instead of each app's own banner. Off by default; a theme can set "uniform_tiles": true. -->
+     <bool name="uniform_tiles">false</bool>
+@@ -447,6 +463,10 @@
+          (many China-market TVs, e.g. Coocaa 8R145), a fresh Home with app_library on would otherwise be
+          nearly empty. Empty (off) by default, so existing setups change nothing. -->
+     <string-array name="library_apps" translatable="false">
++        <item>com.mediatek.miracast</item>
++        <item>com.jrm.localmm</item>
++        <item>com.siviton.bluesound</item>
++        <item>com.joyar.general.settings</item>
+     </string-array>
+ 
+     <!-- Packages the App library catalogue never offers, even with app_library on (config.xml
