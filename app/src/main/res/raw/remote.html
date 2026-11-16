@@ -348,7 +348,8 @@
     <div class="top up">
       <button class="key round sm press guestDim" aria-label="Sleep" id="sleepBtn"><svg width="20" height="20" fill="none" stroke="#FF8A80" stroke-width="2" stroke-linecap="round"><use href="#i-power"/></svg></button>
       <button class="key pill press" id="devPill"><span class="dot" id="dot"><i></i><i></i></span><span class="name devName">{{Kind}}</span></button>
-      <button class="key round sm press" aria-label="Search or type" data-sheet="search"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round"><use href="#i-search"/></svg></button>
+      <span style="display:flex;gap:8px"><button class="key round sm press" aria-label="Keyboard" data-sheet="type"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-kbd"/></svg></button>
+      <button class="key round sm press" aria-label="Search" data-sheet="search"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round"><use href="#i-search"/></svg></button></span>
     </div>
     <div class="note hidden" id="ptrNote" role="status"><b>Mouse mode is on</b> (the mouse button on the {{kind}}'s own remote). The phone's arrows still move the selection; press that mouse button again to hide the pointer.</div>
     <div class="remote">
@@ -527,7 +528,7 @@
           <li>Say <b>"Hey Siri, Projector"</b>, then e.g. <i>open YouTube</i>.</li>
         </ol>
         <p style="margin:8px 0 6px;color:var(--dim)">Shortcuts didn't open? <a href="/Projector.shortcut" style="color:var(--text)">Get the shortcut</a>. The address (keep it private: it controls the {{kind}} like this phone):</p>
-        <div class="row"><input class="field" id="siriUrl" readonly style="font-size:12px"><button class="btn press" id="siriCopy" type="button" style="flex-shrink:0;padding:0 16px">Copy</button></div>
+        <div class="row"><input class="field" id="siriUrl" readonly style="font-size:12px;flex:1 1 auto;min-width:0;width:auto;height:46px;padding:0 12px"><button class="btn press" id="siriCopy" type="button" style="flex:0 0 auto;width:auto;height:46px;padding:0 18px">Copy</button></div>
         <p style="margin:8px 0 0;color:var(--dim)">One-word shortcuts work too: put e.g. <b>pause</b> after <code>say=</code> in Get Contents of URL. Works on the home Wi-Fi only.</p>
         <button class="linkbtn" id="siriOff" type="button" style="margin-top:10px;color:#FF8A80">Turn off this key</button>
       </div></div>
@@ -1269,6 +1270,7 @@
   document.querySelectorAll("[data-sheet]").forEach((b) => b.addEventListener("click", () => {
     const s = b.dataset.sheet;
     // An app is open: type into it (if it has no box selected, the sheet offers a YouTube search). Home: search.
+    if (s === "type") return openSheet("type", false);
     const wantSearch = !state.current;
     openSheet(wantSearch && state.youtube !== false ? "search" : "type", s === "voice");
   }));
