@@ -40,6 +40,11 @@ android {
         }
     }
 
+    // The phone app's APK rides along in assets, so the TV can hand it to Android phones (/android.apk).
+    sourceSets {
+        main.assets.srcDirs += layout.buildDirectory.dir('generated/phoneApk')
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -50,3 +55,12 @@ dependencies {
     // QR code for the address on the projector screen. Pure Java, no Android or network code.
     implementation 'com.google.zxing:core:3.5.3'
 }
+
+// Builds the phone app (phone/) and puts its release APK into this app's assets.
+def copyPhoneApk = tasks.register('copyPhoneApk', Copy) {
+    dependsOn ':phone:assembleRelease'
+    from(project(':phone').layout.buildDirectory.file('outputs/apk/release/phone-release.apk'))
+    into(layout.buildDirectory.dir('generated/phoneApk'))
+    rename { 'phone-remote.apk' }
+}
+tasks.named('preBuild') { dependsOn copyPhoneApk }

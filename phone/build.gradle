@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The phone app: a full-screen window onto the remote page that each projector or TV serves. It finds them on the
+// Wi-Fi itself and keeps the pairing when a device's address changes. The TV app carries this APK and offers it
+// to Android phones, so it is built (and signed) together with it.
+android {
+    namespace 'com.local.projremote.phone'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.local.projremote.phone'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    def keyFile = rootProject.file('keystore.properties')
+    signingConfigs {
+        if (keyFile.exists()) {
+            def k = new Properties()
+            keyFile.withInputStream { k.load(it) }
+            upload {
+                storeFile rootProject.file(k['storeFile'])
+                storePassword k['storePassword']
+                keyAlias k['keyAlias']
+                keyPassword k['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig keyFile.exists() ? signingConfigs.upload : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

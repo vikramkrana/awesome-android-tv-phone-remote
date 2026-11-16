@@ -97,7 +97,7 @@ class Handler(BaseHTTPRequestHandler):
             kind = "TV" if self.kind == "tv" else "projector"
             html = PAGE.read_text(encoding="utf-8")
             html = html.replace("{{app}}", "Phone Remote").replace("{{kind}}", kind).replace("{{Kind}}", kind[0].upper() + kind[1:])
-            html = html.replace("{{version}}", "1.1").replace("{{author}}", "Vikram Rana").replace("{{project}}", "")
+            html = html.replace("{{id}}", "demo0000").replace("{{version}}", "1.2").replace("{{author}}", "Vikram Rana").replace("{{project}}", "")
             html = html.replace("<script>", BEFORE + "<script>", 1).replace("</body>", AFTER + "</body>")
             return self.send(200, "text/html; charset=utf-8", html)
         if path == "/frame":

@@ -503,7 +503,9 @@
   const $ = (id) => document.getElementById(id);
   // iPadOS calls itself a Mac; a Mac has no touch screen.
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-  const standalone = !!navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  // Inside the Android phone app (phone/): it shows this page full screen and keeps its storage (see Bridge.java).
+  const app = window.PhoneRemoteApp || null;
+  const standalone = !!app || !!navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
   if (isIOS && standalone) {
     // The Home Screen app's page is one status bar shorter than the screen, which clips the tab bar. The whole
     // screen height (portrait, the remote's orientation) is the real size.
@@ -527,11 +529,16 @@
     addEventListener("pointerup", enter, true);
     document.addEventListener("visibilitychange", () => { if (document.hidden) armed = true; });
   }
+  // In the phone app, storage is the app's, under this device's fixed id: a new address keeps the pairing.
+  const box = app ? {
+    getItem: (k) => app.get("{{id}}/" + k), setItem: (k, v) => app.set("{{id}}/" + k, v), removeItem: (k) => app.del("{{id}}/" + k),
+  } : window.localStorage;
   const store = {
-    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
-    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+    get(k, d) { try { const v = box.getItem(k); return v === null || v === undefined ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { box.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { box.removeItem(k); } catch (e) {} },
   };
+  if (app) app.here("{{id}}", "{{Kind}}", location.origin);
   let token = store.get("token", null);
   // Phones paired with the first version kept the token under another key: carry it over.
   try { const legacy = localStorage.getItem("projremote-token"); if (!token && legacy) { token = legacy; store.set("token", token); } localStorage.removeItem("projremote-token"); } catch (e) {}
@@ -719,9 +726,12 @@
     if (!on && token && current !== "lost") { show("lost"); retryLoop(); }
   }
   async function retryLoop() {
+    let tries = 0;
     while (!online && token) {
       await new Promise((r) => setTimeout(r, 3000));
       try { await refresh(); } catch (e) {}
+      // The phone app looks for the device again itself (it may have a new address), or says it is off.
+      if (!online && app && ++tries >= 2) { location.reload(); return; }
     }
     if (online && current === "lost") show("remote");
   }
@@ -1058,7 +1068,8 @@
     $("micHint").classList.add("hidden");
     // Focus now, inside the tap: iPhone opens the keyboard (with its 🎤 key) only for a focus that comes from a tap.
     $("sheetInput").focus();
-    if (voice) micHint();
+    if (voice && appVoice) { $("sheetInput").blur(); app.listen(); }
+    else if (voice) micHint();
   }
   function closeSheet() {
     $("scrim").classList.remove("show"); $("sheet").classList.remove("show"); $("sheetInput").blur();
@@ -1100,7 +1111,11 @@
       : "Tap <b>🎤</b> on the keyboard and speak.";
     h.classList.remove("hidden");
   }
+  const appVoice = !!(app && app.canListen());
+  // The phone app's own speech recognition: the words go straight in.
+  window.appHeard = (t) => { if (t) { $("sheetInput").value = t; submit(); } };
   $("micBtn").onclick = () => {
+    if (appVoice) { app.listen(); return; }
     if (listening) { listening.stop(); return; }
     if (Speech && window.isSecureContext) {
       try {
@@ -1221,8 +1236,9 @@
   const iosSafari = isIOS && !standalone;
   // Android Chrome: a page over plain HTTP cannot be installed, only added as a shortcut (it keeps the pairing).
   const androidTab = /Android/.test(navigator.userAgent) && !standalone;
-  const ANDROID_STEPS = "Keep it one tap away: tap <b>⋮</b> at the top right, then <b>Add to Home screen</b>, then "
-    + "<b>Create shortcut</b>. (<i>Install</i> is not possible for a page from a home device.) The icon opens straight into the remote.";
+  const ANDROID_STEPS = "Keep it one tap away: get the <b>Phone Remote app</b>. It opens full screen, finds the {{kind}} by "
+    + "itself and stays paired.<br><a class=\"btn primary press\" href=\"/android.apk\" style=\"margin-top:14px;display:inline-flex\">Download the app</a>"
+    + "<br><small>Open the downloaded file; allow installs from Chrome if Android asks.</small>";
   $("phoneName").value = /iPhone/.test(ua) ? "iPhone" : isIOS ? "iPad" : /Android/.test(ua) ? "Android phone" : "Phone";
   // This browser's own random id: pairing again from here replaces its old entry instead of adding a new one.
   let device = store.get("device", null);
@@ -1318,15 +1334,25 @@
   $("pairBtn").onclick = () => { if ($("pin").value.length === 6) pair($("pin").value); else toast("Enter the 6 digits shown on the {{kind}}"); };
   $("doneBtn").onclick = leaveDone;
   if (iosSafari || androidTab) $("homeBtn").classList.remove("hidden");
+  if (androidTab) $("homeBtn").innerHTML = '<div class="grow">Get the Android app<small>Full screen, finds the {{kind}} by itself</small></div>';
   $("homeBtn").onclick = async () => {
     if (androidTab) { $("doneText").innerHTML = ANDROID_STEPS; show("done"); return; }
     $("doneText").innerHTML = "Now tap <b>Share</b>, then <b>Add to Home Screen</b>. The icon opens straight into the remote, no PIN.";
     await prepareHomeScreen(); show("done");
   };
 
+  // The phone app's back button: close what is open first; false lets the app go to the background.
+  window.appBack = () => {
+    if (!$("viewer").classList.contains("hidden")) { $("viewerClose").click(); return true; }
+    if ($("sheet").classList.contains("show")) { closeSheet(); return true; }
+    if (["apps", "proj", "settings", "done"].includes(current) && token) { show("remote"); return true; }
+    return false;
+  };
+
   // ---- start -------------------------------------------------------------------------------------------------------
   async function boot() {
     try { await refresh(); await loadApps(); } catch (e) {}
+    if (app && state.name) app.here("{{id}}", state.name, location.origin);
   }
   setMode(touchMode);
   async function start() {

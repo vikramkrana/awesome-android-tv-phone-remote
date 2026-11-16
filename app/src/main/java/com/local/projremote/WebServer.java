@@ -180,6 +180,13 @@ final class WebServer {
                 case "/icon.png":
                     respond(out, 200, "image/png", icon(), "Cache-Control: max-age=86400\r\n");
                     return;
+                case "/android.apk":
+                    // The phone app (built from phone/ and carried in this APK's assets).
+                    byte[] apk = phoneApk();
+                    if (apk == null) respond(out, 404, "text/plain", "not in this build");
+                    else respond(out, 200, "application/vnd.android.package-archive", apk,
+                            "Content-Disposition: attachment; filename=\"phone-remote.apk\"\r\n");
+                    return;
                 case "/manifest.json":
                     respond(out, 200, "application/manifest+json", manifest());
                     return;
@@ -425,6 +432,22 @@ final class WebServer {
         }
     }
 
+    private byte[] phoneApkBytes;
+
+    private synchronized byte[] phoneApk() {
+        if (phoneApkBytes != null) return phoneApkBytes;
+        try (InputStream in = service.getAssets().open("phone-remote.apk")) {
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] chunk = new byte[16384];
+            int n;
+            while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+            phoneApkBytes = buf.toByteArray();
+        } catch (IOException missing) {
+            return null;
+        }
+        return phoneApkBytes;
+    }
+
     private synchronized byte[] page() throws IOException {
         if (page == null) {
             try (InputStream in = service.getResources().openRawResource(R.raw.remote)) {
@@ -439,6 +462,7 @@ final class WebServer {
                         .replace("{{version}}", versionName())
                         .replace("{{author}}", escapeHtml(service.getString(R.string.author)))
                         .replace("{{project}}", projectLink(service.getString(R.string.project_url)))
+                        .replace("{{id}}", RemoteService.deviceId(service))
                         .replace("{{kind}}", kind)
                         .replace("{{Kind}}", Character.toUpperCase(kind.charAt(0)) + kind.substring(1));
                 page = html.getBytes(StandardCharsets.UTF_8);

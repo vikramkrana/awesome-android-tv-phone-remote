@@ -105,7 +105,7 @@ public class RemoteService extends AccessibilityService {
     private void announce() {
         if (instance != this || server == null || server.port() <= 0) return;
         if (peers == null) peers = new Peers(this);
-        peers.start(deviceName(), server.port());
+        peers.start(deviceName(), deviceId(this), server.port());
     }
 
     int serverPort() {
@@ -566,6 +566,17 @@ public class RemoteService extends AccessibilityService {
         if (guest) level = Math.min(level, (int) Math.floor(max * GUEST_VOLUME));
         audio.setStreamVolume(AudioManager.STREAM_MUSIC, level, AudioManager.FLAG_SHOW_UI);
         return true;
+    }
+
+    /** A fixed id for this device, kept across renames and new addresses: the phone app finds it again by it. */
+    static synchronized String deviceId(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("device", MODE_PRIVATE);
+        String id = prefs.getString("id", null);
+        if (id == null) {
+            id = String.format("%016x", new java.security.SecureRandom().nextLong());
+            prefs.edit().putString("id", id).apply();
+        }
+        return id;
     }
 
     static String localName(Context context) {

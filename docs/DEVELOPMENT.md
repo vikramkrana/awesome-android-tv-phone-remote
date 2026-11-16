@@ -2,7 +2,7 @@
 
 ## How it works
 
-The phone needs no app. The device runs one small Android app with three jobs:
+The phone needs no app (Android phones can get an optional one, below). The device runs one small Android app with three jobs:
 
 1. an **accessibility service** that can press keys and move the selection,
 2. a tiny **web server** that serves one page (the remote) and a few POST endpoints,
@@ -24,10 +24,11 @@ The phone needs no app. The device runs one small Android app with three jobs:
 | `Peers.java` | DNS-SD `_phoneremote._tcp`: announces this device and lists others for the phone's switcher. |
 | `Updates.java` | Optional daily check of the GitHub releases of `project_url`. |
 | `Diagnostics.java` | The plain-text report. |
-| `SelfEnable.java` | Boot receiver: re-enables the service on firmware that drops it, if the owner granted `WRITE_SECURE_SETTINGS`. |
+| `SelfEnable.java` | Boot receiver: re-enables the service on firmware that drops it, if the owner granted `WRITE_SECURE_SETTINGS`. `MediaListener` runs it too after boot, for firmware that blocks the boot broadcast. |
 | `MdnsResponder.java` | Answers mDNS `A` queries for the device's own name, e.g. `living-room-3f2a.local`. |
 | `NetUtil.java`, `Qr.java` | The device's IPv4 address; QR bitmaps. |
 | `res/raw/remote.html` | The whole phone app: one file, no framework, no external requests. Colours are CSS variables at the top. |
+| `phone/` | The optional Android phone app (about 20 KB): a full-screen WebView on the remote page. Finds devices over DNS-SD (TXT `id`), keeps the page's storage under that id (`window.PhoneRemoteApp`, `Bridge.java`) so a new address keeps the pairing, speech through `RecognizerIntent` (`appHeard`), back button through `appBack`, Share → link. Built with the TV app and carried in its assets. |
 | `res/values/config.xml` | Everything device-specific: port, mDNS name, projector/TV, extra home or hidden packages, mouse-mode property, YouTube packages. |
 
 ### Arrows and OK
@@ -61,6 +62,7 @@ below the highest seen.
 |---|---|---|---|
 | `GET /` | no | | the page |
 | `GET /icon.png`, `GET /manifest.json` | no | | Home Screen icon, web app manifest |
+| `GET /android.apk` | no | | the phone app (from `phone/`) |
 | `/api/hello` | no | | the current epoch |
 | `/api/pair/start` | no | form: `device` | shows a PIN on the device; `429` if asked within 10 s; `423` while **Allow new phones** is off; `409` (body: the limit) when the phone limit is reached |
 | `/api/pair` | no | form: `secret` (PIN), `name`, `device` (32 hex) | the token, and the restore cookie; `403` on a wrong or expired PIN; `409`, `423` as above |

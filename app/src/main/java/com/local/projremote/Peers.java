@@ -32,7 +32,7 @@ final class Peers {
         nsd = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
     }
 
-    void start(String name, int port) {
+    void start(String name, String id, int port) {
         stop();
         if (nsd == null) return;
         try {
@@ -40,6 +40,7 @@ final class Peers {
             info.setServiceName(name);
             info.setServiceType(TYPE);
             info.setPort(port);
+            info.setAttribute("id", id);
             ownName = name;
             registration = new NsdManager.RegistrationListener() {
                 @Override public void onServiceRegistered(NsdServiceInfo s) { ownName = s.getServiceName(); }
