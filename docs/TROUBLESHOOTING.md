@@ -12,6 +12,7 @@
 | "This projector is full" | The **Phone limit** is reached (the Home card says *Full*). On the device, remove a phone you no longer use, or raise the limit, then tap **Try again**. Already paired phones are not affected. |
 | "New phones are turned off" | **Allow new phones** is off on the device. Turn it on in Phone Remote there, tap **Try again**, pair, turn it off again. |
 | The phone asks for a PIN again | The device got a new address (other network, or the router handed out another one): to the browser that is a new site. Pair once more, and give the device a fixed address in your router (DHCP reservation). Also happens if the phone was removed on the device, or in a private browsing tab. |
+| Android: "This app cannot be installed" | Expected. Chrome installs only pages served over HTTPS, and the remote's page comes from the device over plain HTTP. Pick **Create shortcut** in the same sheet: the icon opens the remote in Chrome, already paired. |
 | iPhone Home Screen icon asks for a PIN | The icon was added when "You're connected" was not on screen. Pair it once, or delete the icon and add it again from **Settings → Add to Home Screen**. |
 | "Can't reach …" | The device is off, asleep with Wi-Fi off, or on another network. The page retries by itself. |
 | Blank screen when opening the remote | The device is off (or on another network). The remote's page comes from the device itself, and a page from a home device (plain HTTP) cannot be kept offline on the phone. Switch the device on, wait until its Home screen shows, then open the remote again. |
