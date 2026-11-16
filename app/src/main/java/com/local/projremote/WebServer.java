@@ -324,6 +324,7 @@ final class WebServer {
         switch (path) {
             case "/api/launch": ok = service.apps().launch(body.trim()); break;
             case "/api/projector": ok = service.apps().openProjectorSettings(); break;
+            case "/api/tool": ok = DeviceTools.run(service, body.trim()); break;
             case "/api/rename": ok = service.rename(body); break;
             case "/api/ping": ok = true; break;
             case "/api/key": {
@@ -530,6 +531,7 @@ final class WebServer {
 
     /** What a guest phone may not do: the device's settings, its name, sleep, the screen picture, the report. */
     private static final java.util.Set<String> GUEST_DENIED = new java.util.HashSet<>(java.util.Arrays.asList(
+            "/api/tool",
             "/api/projector", "/api/rename", "/api/sleeptimer", "/api/screen", "/api/diag"));
 
     private static int parseInt(String s) {

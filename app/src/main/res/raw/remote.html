@@ -249,7 +249,11 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-1"/></symbol>
+    <symbol id="i-magic" viewBox="0 0 24 24"><path d="M4 20 15 9"/><path d="M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M19 3v2M18 4h2"/></symbol>
+<symbol id="i-keystone" viewBox="0 0 24 24"><path d="M6 5h12l3 14H3z"/></symbol>
+<symbol id="i-zoom" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-input" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 9v5M9.5 11.5 12 14l2.5-2.5"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-1"/></symbol>
     <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z M23 9l-6 6 M17 9l6 6"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
@@ -427,6 +431,18 @@
       <div class="label">Sleep timer <span id="timerLeft" style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)"></span></div>
       <div class="chiprow" id="timerRow">
         <button class="chip press" data-timer="0">Off</button><button class="chip press" data-timer="15">15 min</button><button class="chip press" data-timer="30">30 min</button><button class="chip press" data-timer="60">1 hour</button><button class="chip press" data-timer="90">1½ hours</button><button class="chip press" data-timer="120">2 hours</button>
+      </div>
+    </div>
+
+    <div id="toolsWrap" class="hidden">
+      <div class="label">Picture &amp; input</div>
+      <div class="card">
+        <div class="list">
+        <button class="item press hidden" data-tool="autocorrect"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-magic"/></svg><div class="grow">Auto correct picture<small>Focus and straighten with the camera; shows a test pattern for a few seconds</small></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+        <button class="item press hidden" data-tool="keystone"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-keystone"/></svg><div class="grow">Keystone<small>Straighten the corners: opens on screen, adjust with the arrows</small></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+        <button class="item press hidden" data-tool="zoom"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-zoom"/></svg><div class="grow">Zoom<small>Shrink the picture to fit the wall</small></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+        <button class="item press hidden" data-tool="inputs"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-input"/></svg><div class="grow">Input source<small>HDMI, USB and more: pick on screen</small></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+        </div>
       </div>
     </div>
 
@@ -762,6 +778,10 @@
     $("ptrNote").classList.toggle("hidden", !s.pointer);
     // Lens focus: only on projectors whose focus the remote knows how to drive.
     $("focusRow").classList.toggle("hidden", !s.focus);
+    // Picture and input shortcuts: only those this device has.
+    const tools = s.tools || [];
+    document.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("hidden", !tools.includes(b.dataset.tool)));
+    $("toolsWrap").classList.toggle("hidden", !tools.length || !!s.guest);
     // No YouTube app on the device: no "Search YouTube".
     document.querySelectorAll("[data-mode=search]").forEach((el) => el.classList.toggle("hidden", s.youtube === false));
     document.querySelectorAll(".devName").forEach((el) => (el.textContent = s.name));
@@ -822,6 +842,9 @@
       b.addEventListener("click", () => key(b.dataset.k));
     }
   });
+  const TOOL_SAID = { autocorrect: "Correcting the picture", keystone: "Keystone opened on the {{kind}}", zoom: "Zoom opened on the {{kind}}", inputs: "Pick the input on the {{kind}}" };
+  document.querySelectorAll("[data-tool]").forEach((b) => b.addEventListener("click", () =>
+    api("/api/tool", b.dataset.tool).then((r) => toast(r.ok ? TOOL_SAID[b.dataset.tool] : "Couldn't open it")).catch(() => {})));
   document.querySelectorAll("[data-act=projector]").forEach((b) => b.addEventListener("click", () =>
     api("/api/projector").then((r) => toast(r.ok ? "Opened on the {{kind}}" : "Couldn't open settings")).catch(() => {})));
 

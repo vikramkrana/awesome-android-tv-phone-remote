@@ -621,7 +621,7 @@ public class RemoteService extends AccessibilityService {
                         .put("volCap", phone.guest() ? (int) Math.floor(max * GUEST_VOLUME) : max)
                         .put("muted", audio.isStreamMute(AudioManager.STREAM_MUSIC));
             }
-            s.put("focus", Focus.supported(this));
+            s.put("focus", Focus.supported(this)).put("tools", DeviceTools.available(this));
             s.put("canSleep", android.os.Build.VERSION.SDK_INT >= 28).put("sleepIn", sleepIn());
             s.put("preview", !phone.guest() && previewAllowed(this) && android.os.Build.VERSION.SDK_INT >= 30);
             s.put("media", NowPlaying.allowed(this) ? NowPlaying.json(this, apps) : null);
@@ -855,6 +855,33 @@ public class RemoteService extends AccessibilityService {
             if (deeper != null) return deeper;
         }
         return null;
+    }
+
+    /**
+     * Clicks the first item showing these words once it appears (a menu just asked to open): tries for about two
+     * seconds, then gives up and leaves the menu as it is.
+     */
+    void clickTextSoon(String words) {
+        final int[] tries = {0};
+        Runnable attempt = new Runnable() {
+            @Override public void run() {
+                AccessibilityNodeInfo root = getRootInActiveWindow();
+                if (root != null) {
+                    for (AccessibilityNodeInfo n : root.findAccessibilityNodeInfosByText(words)) {
+                        if (n.getText() == null || !n.getText().toString().trim().equalsIgnoreCase(words)) continue;
+                        for (AccessibilityNodeInfo c = n; c != null; c = c.getParent()) {
+                            if (c.isClickable()) {
+                                c.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                                c.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                return;
+                            }
+                        }
+                    }
+                }
+                if (++tries[0] < 8) main.postDelayed(this, 300);
+            }
+        };
+        main.postDelayed(attempt, 500);
     }
 
     private boolean clickFocused() {
