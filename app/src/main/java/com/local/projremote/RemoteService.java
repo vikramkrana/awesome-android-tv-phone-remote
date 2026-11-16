@@ -973,7 +973,7 @@ public class RemoteService extends AccessibilityService {
 
     /**
      * The remote card on Home, styled like the launcher's glass pills: a small pairing QR, and beside it every paired
-     * phone as a chip whose dot is green while that phone is connected. It is a Home widget, hidden over apps.
+     * phone as a small initials badge (green ring while connected) and a count. It is a Home widget, hidden over apps.
      */
     private void updateQrCard() {
         if (instance != this) return;   // switched off: the next instance draws its own card
@@ -1077,35 +1077,58 @@ public class RemoteService extends AccessibilityService {
         side.addView(hint);
 
         if (!phones.isEmpty()) {
-            LinearLayout chips = new LinearLayout(this);
-            chips.setOrientation(LinearLayout.HORIZONTAL);
-            chips.setPadding(0, Math.round(dp(8)), 0, 0);
-            int shown = Math.min(3, phones.size());
-            for (int i = 0; i < shown; i++) chips.addView(chip(phones.get(i).name, phones.get(i).connected()));
-            if (phones.size() > shown) chips.addView(chip("+" + (phones.size() - shown), null));
-            side.addView(chips);
+            // Phones as a stack of small initials badges (green ring: connected now) and one line of totals, so
+            // the card stays the same size however many phones there are or how long their names.
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, Math.round(dp(8)), 0, 0);
+            java.util.List<Pairing.Phone> order = new java.util.ArrayList<>(phones);
+            order.sort((a, b) -> Boolean.compare(b.connected(), a.connected()));   // connected ones first
+            int shown = order.size() > 4 ? 3 : order.size();
+            int connected = 0;
+            for (Pairing.Phone p : order) if (p.connected()) connected++;
+            for (int i = 0; i < shown; i++) row.addView(badge(initials(order.get(i).name), order.get(i).connected(), i));
+            if (order.size() > shown) row.addView(badge("+" + (order.size() - shown), false, shown));
+            String total = connected > 0 ? connected + " connected"
+                    : phones.size() + (phones.size() == 1 ? " phone" : " phones");
+            TextView sum = label(total, 12, connected > 0 ? 0xFF3DDC97 : 0x99FFFFFF);
+            sum.setTypeface(font(R.font.outfit_regular));
+            sum.setPadding(Math.round(dp(8)), 0, 0, 0);
+            row.addView(sum);
+            side.addView(row);
         }
         return card;
     }
 
-    /** A small glass chip: a status dot (green connected, grey not; none when connected is null) and a name. */
-    private View chip(String name, Boolean connected) {
-        TextView t = label((connected == null ? "" : "●  ") + name, 11, 0xE6FFFFFF);
-        t.setTypeface(font(R.font.outfit_regular));
-        t.setSingleLine(true);
-        t.setMaxWidth(Math.round(dp(124)));
-        t.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        if (connected != null) {
-            android.text.SpannableString s = new android.text.SpannableString(t.getText());
-            s.setSpan(new android.text.style.ForegroundColorSpan(connected ? 0xFF3DDC97 : 0x66FFFFFF), 0, 1, 0);
-            t.setText(s);
+    /** "Vikram's iPhone" → "VI"; "Android phone" → "AP"; "Pixel" → "PI". */
+    private static String initials(String name) {
+        String[] words = name == null ? new String[0] : name.trim().split("[\\s_-]+");
+        StringBuilder s = new StringBuilder();
+        for (String w : words) {
+            if (w.isEmpty()) continue;
+            s.appendCodePoint(Character.toUpperCase(w.codePointAt(0)));
+            if (s.length() >= 2) break;
         }
-        int h = Math.round(dp(9)), v = Math.round(dp(3));
-        t.setPadding(h, v, h, v);
-        t.setBackground(pillGlass(dp(12)));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMarginEnd(Math.round(dp(6)));
+        if (s.length() == 1 && words[0].length() > 1) s.appendCodePoint(Character.toUpperCase(words[0].codePointAt(1)));
+        return s.length() == 0 ? "?" : s.toString();
+    }
+
+    /** One round badge of the stack; each overlaps the one before, with a dark rim to keep them apart. */
+    private View badge(String text, boolean connected, int index) {
+        int size = Math.round(dp(30));
+        TextView t = label(text, 11, 0xFFFFFFFF);
+        t.setTypeface(font(R.font.outfit_medium));
+        t.setGravity(Gravity.CENTER);
+        t.setSingleLine(true);
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        int[] tints = {0xFF4A5A8C, 0xFF7A4A8C, 0xFF3F7A6A, 0xFF8C6A3F, 0xFF5A6470};
+        g.setColor(text.startsWith("+") ? 0xFF3A3A40 : tints[Math.abs(text.hashCode()) % tints.length]);
+        g.setStroke(Math.round(dp(2)), connected ? 0xFF3DDC97 : 0xFF1C1C20);
+        t.setBackground(g);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+        if (index > 0) lp.setMarginStart(-Math.round(dp(5)));
         t.setLayoutParams(lp);
         return t;
     }
