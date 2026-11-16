@@ -286,6 +286,13 @@ public class MainActivity extends Activity implements Finder.Listener {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        // The pairing cookie must survive the app being swiped away right after pairing.
+        android.webkit.CookieManager.getInstance().flush();
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
         web.saveState(out);
