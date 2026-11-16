@@ -37,7 +37,10 @@
   .hidden { display: none !important; }
   svg { flex-shrink: 0; }
 
-  .app { position: fixed; inset: 0; max-width: 440px; margin: 0 auto; display: flex; flex-direction: column;
+  /* The ring sets the remote's scale: it grows with the screen's width and height, within limits. */
+  :root { --ring: clamp(184px, min(calc(100vw - 136px), calc(100vh * .34)), 290px); }
+  @supports (height: 100dvh) { :root { --ring: clamp(184px, min(calc(100vw - 136px), calc(100dvh * .34)), 290px); } }
+  .app { position: fixed; inset: 0; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column;
     padding: calc(env(safe-area-inset-top) + 10px) 0 calc(env(safe-area-inset-bottom) + 10px); }
   /* iPhone Home Screen app with a translucent status bar: the page comes out one status bar short, leaving an
      empty band at the bottom. There the app takes the full screen height itself. */
@@ -77,13 +80,13 @@
   @keyframes pulse { 0% { transform: scale(1); opacity: .8 } 100% { transform: scale(2.6); opacity: 0 } }
 
   /* remote */
-  .remote { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 12px; padding: 8px 8px 0; min-height: 556px; }
+  .remote { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 12px; padding: 8px 8px 0; min-height: calc(var(--ring) + 300px); }
   .corner { display: flex; justify-content: space-between; align-items: center; }
   .col { display: flex; flex-direction: column; gap: 14px; }
   .rocker { width: 62px; height: 132px; border-radius: 31px; flex-direction: column; justify-content: space-between; }
   .rocker button { width: 62px; height: 54px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
   .rocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
-  .pad { position: relative; width: 240px; height: 240px; border-radius: 120px; margin: 0 auto;
+  .pad { position: relative; width: var(--ring); height: var(--ring); border-radius: 50%; margin: 0 auto;
     background: var(--chrome); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25); }
   [data-hold] { touch-action: none; }
   .note { margin: 4px 2px 0; padding: 10px 14px; border-radius: 14px; background: var(--key); border: 1px solid var(--line); font-size: 13px; line-height: 1.4; color: #D9D6E0; }
@@ -97,9 +100,9 @@
   .pad .arrow.d { clip-path: polygon(50% 50%, 100% 100%, 0 100%); align-items: flex-end; padding-bottom: 22px; }
   .pad .arrow.l { clip-path: polygon(50% 50%, 0 100%, 0 0); justify-content: flex-start; padding-left: 22px; }
   .pad .arrow.r { clip-path: polygon(50% 50%, 100% 0, 100% 100%); justify-content: flex-end; padding-right: 22px; }
-  .pad .ok { z-index: 2; position: absolute; left: 64px; top: 64px; width: 112px; height: 112px; border-radius: 56px;
-    background: #232427; font-size: 22px; font-weight: 600; box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
-  .touch { width: 100%; height: 240px; border-radius: 32px; background: var(--key); display: flex; flex-direction: column;
+  .pad .ok { z-index: 2; position: absolute; left: 26.7%; top: 26.7%; width: 46.6%; height: 46.6%; border-radius: 50%;
+    background: #232427; font-size: calc(var(--ring) * .092); font-weight: 600; box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
+  .touch { width: 100%; height: var(--ring); border-radius: 32px; background: var(--key); display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 6px; color: var(--dim); font-size: 14px; text-align: center; padding: 0 16px; box-sizing: border-box;
     touch-action: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .1s; }
   .touch.flash { box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
@@ -225,13 +228,19 @@
   #padWrap { position: relative; flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
   /* Volume on the left of the ring, upright: + on top. */
   .mid { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 6px; }
-  .vrocker { width: 60px; height: 200px; border-radius: 30px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; flex: 0 0 auto; }
-  .vrocker button { width: 60px; height: 76px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
+  .vrocker { width: 60px; height: calc(var(--ring) * .84); border-radius: 30px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+  .vrocker button { width: 60px; height: 38%; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
   .vrocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
   .vrocker button.down { background: rgba(255,255,255,.14); border-radius: 30px; transform: scale(.94); }
-  @media (max-width: 350px) { .mid .pad { transform: scale(.88); margin: -14px; } }
   .af { padding: 0 18px; height: 56px; font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; flex: 0 0 auto; }
   #focusRow .hrocker { margin: 0 10px 0 0; flex: 1 1 auto; min-width: 0; }
+  /* Short screens (iPhone SE, small Androids): tighter rows so the whole remote fits without scrolling. */
+  @media (max-height: 700px) {
+    .remote { gap: 6px; min-height: calc(var(--ring) + 250px); padding-top: 2px; }
+    .round.lg { width: 54px; height: 54px; }
+    .hrocker, .hrocker button, .af { height: 46px; }
+    .quick .app-tile { padding-top: 6px; padding-bottom: 6px; }
+  }
   .modeBtn { position: absolute; right: 2px; bottom: 0; width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent; color: var(--faint); display: flex; align-items: center; justify-content: center; z-index: 3; }
   .modeBtn.down { background: rgba(255,255,255,.1); color: var(--text); }
   /* Full-screen preview: fills the screen; held upright, the picture turns sideways to use the whole phone. */
