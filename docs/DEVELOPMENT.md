@@ -26,6 +26,7 @@ The phone needs no app (Android phones can get an optional one, below). The devi
 | `Diagnostics.java` | The plain-text report. |
 | `Focus.java` | Lens motor and auto focus through Joyar's `DispatcherService` (`motorCtrl` 1/2/0, `action=focus`). |
 | `DeviceTools.java` | Picture & input and power off where the firmware has them: Joyar camera correction, Siviton system menu (Projection page, power menu), MediaTek Source panel. |
+| `Voice.java` | Spoken/typed commands to actions, with a one-sentence answer. |
 | `Photos.java` | The slideshow activity; pictures in the cache, deleted when it closes. |
 | `SelfEnable.java` | Boot receiver: re-enables the service on firmware that drops it, if the owner granted `WRITE_SECURE_SETTINGS`. `MediaListener` runs it too after boot, for firmware that blocks the boot broadcast. |
 | `MdnsResponder.java` | Answers mDNS `A` queries for the device's own name, e.g. `living-room-3f2a.local`. |
@@ -97,6 +98,9 @@ below the highest seen.
 | `/api/bedtime` | yes, not guests/kids | minutes after midnight, `-1` off | `state.bedtime` |
 | `/api/kidapps` | yes, family | `pkg` adds, `-pkg` removes | `state.kidApps` |
 | `/api/photo?i=&n=` | yes | base64 JPEG, up to 3 MB | picture `i` of `n`; `i=0` starts a new slideshow |
+| `/api/say` | yes | the words | runs a command; the answer as text |
+| `/api/voicekey` | yes, not guests | `new` (answer: the key) or `off` | `state.voiceKey` |
+| `/api/do?k=&say=` | voice key | (or the words as body) | GET or POST, for Siri shortcuts; the answer as text; `403` unknown key, `429` too fast |
 | `/api/photos` | yes | `next` `prev` `pause` `play` `stop` | `state.photos` while one is open |
 
 Example in Python, with a token copied from a paired browser's storage (`localStorage.token`):

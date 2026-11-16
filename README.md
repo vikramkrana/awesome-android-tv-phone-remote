@@ -26,6 +26,7 @@ not certified Android TV devices. It needs no root and no Google services, and i
 | **Picture & input** | Where the firmware has them: auto correct (camera focus and keystone), keystone, zoom, input source. |
 | **Power and bedtime** | ⏻ opens Screen off / Power off. Bedtime: the screen goes off at the same time every night, after a 5-minute warning on screen. |
 | **Show photos** | Pick photos on the phone; they play full screen as a slideshow. Nothing is kept on the device afterwards. |
+| **Voice and Siri** | Commands in plain words ("open Netflix", "pause", "volume 30", "search YouTube for…") from a box in Settings, or "Hey Siri, Projector" through an iPhone shortcut with a per-phone key. |
 | **Kids phones** | A role set on the device: only the apps a family phone ticks, volume up to 70%, no settings. |
 | **Touchpad** | Swipe to move, tap to select, swipe and hold to keep moving, hold still for a long press, two fingers to scroll a page. |
 | **Now playing** | Title, artwork, position and seeking, ±10 s, previous/next, for whatever plays on the device. |

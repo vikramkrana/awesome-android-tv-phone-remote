@@ -174,6 +174,11 @@ final class WebServer {
             respond(out, 403, "text/plain", "cross-site");
             return;
         }
+        // Siri and other shortcuts: a phone's voice key instead of a signature (see Voice.java).
+        if (path.equals("/api/do")) {
+            voiceCommand(out, decode(param(query, "k")), decode(param(query, "say")).isEmpty() ? body : decode(param(query, "say")));
+            return;
+        }
         if (method.equals("GET")) {
             switch (path) {
                 case "/":
@@ -339,6 +344,17 @@ final class WebServer {
                 break;
             }
             case "/api/bedtime": ok = service.setBedtime(parseInt(body)); break;
+            case "/api/say":
+                respond(out, 200, "text/plain; charset=utf-8", Voice.run(service, pairing, phone, body));
+                return;
+            case "/api/voicekey": {
+                if (phone.guest()) { respond(out, 403, "text/plain", "not for guests"); return; }
+                if (body.trim().equals("off")) { pairing.clearVoiceKey(phone.id); ok = true; break; }
+                String key = pairing.newVoiceKey(phone.id);
+                if (key == null) { ok = false; break; }
+                respond(out, 200, "text/plain", key);
+                return;
+            }
             case "/api/photo": ok = Photos.add(service, parseInt(param(query, "i")), parseInt(param(query, "n")), body); break;
             case "/api/photos": ok = Photos.command(body.trim()); break;
             case "/api/poweroff": ok = DeviceTools.powerOff(service); break;
@@ -438,6 +454,25 @@ final class WebServer {
         b.recycle();
         iconPng = png.toByteArray();
         return iconPng;
+    }
+
+    private final java.util.Map<String, Long> voiceLast = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** /api/do?k=<voice key>&say=<words>: one command, the answer as plain text for Siri to read. */
+    private void voiceCommand(OutputStream out, String key, String said) throws IOException {
+        Pairing.Phone phone = pairing.byVoiceKey(key);
+        if (phone == null) {
+            respond(out, 403, "text/plain; charset=utf-8", "This shortcut's key is not valid any more. Make a new one in the remote's Settings.");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Long last = voiceLast.put(phone.id, now);
+        if (last != null && now - last < 400) {
+            respond(out, 429, "text/plain", "Too fast.");
+            return;
+        }
+        service.onPhoneSeen(phone);
+        respond(out, 200, "text/plain; charset=utf-8", Voice.run(service, pairing, phone, said));
     }
 
     private static String param(String query, String name) {

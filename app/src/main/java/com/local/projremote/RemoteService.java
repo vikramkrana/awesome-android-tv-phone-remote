@@ -654,6 +654,11 @@ public class RemoteService extends AccessibilityService {
     /** Guests may turn the volume up to this share of the maximum. */
     static final float GUEST_VOLUME = 0.7f;
 
+    int volumeMax() {
+        AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        return audio.isVolumeFixed() ? 0 : audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+    }
+
     boolean atGuestVolumeCap() {
         AudioManager audio = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
@@ -717,6 +722,7 @@ public class RemoteService extends AccessibilityService {
             // Family phones see the kids' app list to tick apps on and off; kids see what they may open.
             if (!phone.guest()) s.put("kidApps", new org.json.JSONArray(pairing.kidApps()));
             s.put("powerOff", !phone.limited() && DeviceTools.canPowerOff(this));
+            s.put("voiceKey", !phone.voiceKey.isEmpty());
             s.put("bedtime", bedtime(this)).put("photos", Photos.isShowing());
             if (phone.guest()) {
                 s.put("guest", true).put("guestLeft", Math.max(0, (phone.guestUntil - System.currentTimeMillis()) / 1000));

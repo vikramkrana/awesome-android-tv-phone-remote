@@ -508,6 +508,32 @@
       <button class="item press guestHide" id="diagBtn"><div class="grow">Copy diagnostics<small>For a bug report: device, Android, setup. No names or keys.</small></div></button>
       <button class="item press" id="unpairBtn"><div class="grow" style="color:#FF8A80">Unpair this phone</div></button>
     </div></div>
+    <div class="label">Voice commands</div>
+    <div class="card">
+      <form class="row" id="sayForm" style="margin:2px 0 4px"><input class="field" id="sayInput" type="search" enterkeyhint="send" autocomplete="off" placeholder="Try: open Netflix, pause, volume 30"><button class="key round press" aria-label="Send command" style="flex-shrink:0;width:54px;height:54px"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-send"/></svg></button></form>
+      <p id="sayReply" class="hidden" style="margin:6px 4px 2px;font-size:14px;color:var(--text)"></p>
+      <p style="margin:6px 4px 0;font-size:12.5px;color:var(--dim);line-height:1.45">Open or name an app · pause / play / next · volume up, down, mute, volume 40 · search YouTube for… · home / back · focus · turn off the screen</p>
+    </div>
+    <div class="guestHide" id="siriWrap">
+      <div class="label">Siri</div>
+      <div class="card"><div class="list">
+        <button class="item press" id="siriBtn"><div class="grow">Set up "Hey Siri, Projector"<small id="siriState">An iPhone shortcut that sends what you say to the {{kind}}</small></div></button>
+      </div>
+      <div id="siriHow" class="hidden" style="padding:6px 4px 4px;font-size:13.5px;line-height:1.55;color:#D9D6E0">
+        <p style="margin:4px 0 8px">This phone's address for Siri (keep it private: it controls the {{kind}} like this phone):</p>
+        <div class="row"><input class="field" id="siriUrl" readonly style="font-size:12px"><button class="btn press" id="siriCopy" type="button" style="flex-shrink:0;padding:0 16px">Copy</button></div>
+        <ol style="margin:12px 0 4px;padding-left:20px">
+          <li>Open <b>Shortcuts</b> → <b>+</b> → name it <b>Projector</b>.</li>
+          <li>Add <b>Dictate Text</b>.</li>
+          <li>Add <b>Get Contents of URL</b>, paste the address, and at its end insert <b>Dictated Text</b>.</li>
+          <li>Add <b>Speak Text</b> (or Show Result) with <b>Contents of URL</b>.</li>
+          <li>Say <b>"Hey Siri, Projector"</b>, then e.g. <i>open YouTube</i>.</li>
+        </ol>
+        <p style="margin:8px 0 0;color:var(--dim)">One-word shortcuts work too: put e.g. <b>pause</b> after <code>say=</code> and name the shortcut "Pause projector". Works on the home Wi-Fi only.</p>
+        <button class="linkbtn" id="siriOff" type="button" style="margin-top:10px;color:#FF8A80">Turn off this key</button>
+      </div></div>
+    </div>
+
     <div class="label">Help</div>
     <div class="card"><div class="list">
       <div class="item"><div class="grow">Typing<small>Select a search box on the {{kind}} first, then type or speak on the phone.</small></div></div>
@@ -1022,6 +1048,8 @@
     }
     $("timerWrap").classList.toggle("hidden", !state.canSleep || !!state.guest || !!state.kid);
     $("photoCtl").classList.toggle("hidden", !state.photos);
+    if ($("siriHow").classList.contains("hidden"))
+      $("siriState").textContent = state.voiceKey ? "On for this phone. Tap to make a new address." : "An iPhone shortcut that sends what you say to the {{kind}}";
     $("bedWrap").classList.toggle("hidden", !state.canSleep || !!state.guest || !!state.kid);
     $("bedRow").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", Number(c.dataset.bed) === (state.bedtime ?? -1)));
     const left = state.sleepIn || 0;
@@ -1507,6 +1535,36 @@
     if (androidTab) { $("doneText").innerHTML = ANDROID_STEPS; show("done"); return; }
     $("doneText").innerHTML = "Now tap <b>Share</b>, then <b>Add to Home Screen</b>. The icon opens straight into the remote, no PIN.";
     await prepareHomeScreen(); show("done");
+  };
+
+  // ---- voice commands and Siri (Voice.java) ---------------------------------------------------------------------
+  $("sayForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const t = $("sayInput").value.trim(); if (!t) return;
+    const r = await api("/api/say", t).catch(() => null);
+    const reply = r ? await r.text() : "Can't reach the {{kind}}";
+    $("sayReply").textContent = reply; $("sayReply").classList.remove("hidden");
+    if (r && r.ok) { $("sayInput").value = ""; refresh().catch(() => {}); }
+  };
+  function showSiri(key) {
+    $("siriUrl").value = location.origin + "/api/do?k=" + key + "&say=";
+    $("siriHow").classList.remove("hidden");
+    $("siriState").textContent = "On. Follow the steps below on this iPhone.";
+  }
+  $("siriBtn").onclick = async () => {
+    if (state.voiceKey && !$("siriHow").classList.contains("hidden")) return;
+    if (state.voiceKey && !confirm("Make a new address? Shortcuts using the old one stop working.")) return;
+    const r = await api("/api/voicekey", "new").catch(() => null);
+    if (!r || !r.ok) return toast("Couldn't set it up");
+    showSiri(await r.text()); refresh().catch(() => {});
+  };
+  $("siriCopy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("siriUrl").value); toast("Copied"); }
+    catch (e) { $("siriUrl").select(); document.execCommand("copy"); toast("Copied"); }
+  };
+  $("siriOff").onclick = async () => {
+    const r = await api("/api/voicekey", "off").catch(() => null);
+    if (r && r.ok) { $("siriHow").classList.add("hidden"); $("siriUrl").value = ""; toast("Siri key turned off"); refresh().catch(() => {}); }
   };
 
   // The phone app's back button: close what is open first; false lets the app go to the background.

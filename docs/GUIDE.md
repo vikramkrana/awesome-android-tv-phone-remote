@@ -220,6 +220,18 @@ tools are left out on purpose.
 - **Mouse mode is on:** some projector remotes have a mouse button that turns arrow keys into a pointer. The
   phone's arrows keep working; press that button again to hide the pointer.
 
+### Voice commands and Siri
+
+**Settings → Voice commands:** type or dictate a command and send it: *open Netflix* (or just *Netflix*),
+*pause*, *play*, *next*, *volume up*, *mute*, *volume 30*, *search YouTube for lofi music*, *home*, *back*,
+*focus*, *turn off the screen*, *power off*. The answer shows below the box.
+
+**Siri (iPhone):** Settings → **Set up "Hey Siri, Projector"** makes a private address for this phone. Then in
+the **Shortcuts** app: **+**, name it *Projector*; add **Dictate Text**; add **Get Contents of URL** with the
+address, and insert *Dictated Text* at its end; add **Speak Text** with *Contents of URL*. Now "Hey Siri,
+Projector", then say the command; Siri reads the answer. One-command shortcuts work too ("Hey Siri, pause
+projector": put *pause* after `say=`). **Turn off this key** there stops every shortcut that uses it. Home Wi-Fi only.
+
 ## 6. The screens on the projector or TV
 
 **The Home card** (picture in step 3): the QR code, and a chip for each paired phone, green while that phone is

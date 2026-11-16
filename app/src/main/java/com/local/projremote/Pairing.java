@@ -61,6 +61,8 @@ final class Pairing {
         long guestUntil;
         /** A kids phone: a guest's limits without the time limit, and only the apps in kidApps(). */
         boolean kid;
+        /** Hash of this phone's voice key (Siri shortcuts, /api/do); "" when it has none. */
+        String voiceKey = "";
 
         Phone(String id, String name, String device, long pairedAt, long lastSeen) {
             this.id = id;
@@ -198,6 +200,38 @@ final class Pairing {
         phone.kid = kid;
         phone.guestUntil = 0;
         save();
+    }
+
+    /** A new voice key for this phone (the old one stops working); the key itself, shown once. */
+    synchronized String newVoiceKey(String id) {
+        Phone phone = phones.get(id);
+        if (phone == null) return null;
+        byte[] raw = new byte[18];
+        new java.security.SecureRandom().nextBytes(raw);
+        String key = android.util.Base64.encodeToString(raw, android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP | android.util.Base64.NO_PADDING);
+        phone.voiceKey = hash("voice:" + key);
+        save();
+        return key;
+    }
+
+    synchronized void clearVoiceKey(String id) {
+        Phone phone = phones.get(id);
+        if (phone == null) return;
+        phone.voiceKey = "";
+        save();
+    }
+
+    /** The phone this voice key belongs to, marked as seen; null if none. */
+    synchronized Phone byVoiceKey(String key) {
+        if (key == null || key.length() < 16) return null;
+        String h = hash("voice:" + key);
+        for (Phone p : phones.values()) {
+            if (!p.voiceKey.isEmpty() && java.security.MessageDigest.isEqual(p.voiceKey.getBytes(), h.getBytes())) {
+                p.lastSeen = System.currentTimeMillis();
+                return p;
+            }
+        }
+        return null;
     }
 
     /** The apps kids phones may open (package names), chosen by a family phone. */
@@ -432,6 +466,7 @@ final class Pairing {
                 phone.handoffUntil = p.optLong("handoffUntil");
                 phone.guestUntil = p.optLong("guestUntil");
                 phone.kid = p.optBoolean("kid");
+                phone.voiceKey = p.optString("voiceKey", "");
                 phones.put(id, phone);
                 for (String key : phone.keys) register(key, phone);
             }
@@ -448,7 +483,7 @@ final class Pairing {
                         .put("paired", p.pairedAt).put("seen", p.lastSeen)
                         .put("keys", new org.json.JSONArray(p.keys))
                         .put("handoff", p.handoff).put("handoffUntil", p.handoffUntil)
-                        .put("guestUntil", p.guestUntil).put("kid", p.kid));
+                        .put("guestUntil", p.guestUntil).put("kid", p.kid).put("voiceKey", p.voiceKey));
             }
             prefs.edit().putString("phones", all.toString()).apply();
             lastSaved = System.currentTimeMillis();

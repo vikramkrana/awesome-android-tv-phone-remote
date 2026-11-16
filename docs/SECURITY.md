@@ -23,6 +23,12 @@ stops at 70%, and they are removed after 24 hours. **Kids phones** have the same
 and in addition open only the apps family phones ticked, cannot send links, and search YouTube only when a YouTube
 app is ticked.
 
+**Voice keys** (Siri shortcuts): a family or kids phone can make one random 144-bit key for itself, used in
+`/api/do?k=…&say=…` instead of a signature. The device stores only its hash. It carries that phone's limits,
+runs only the spoken commands (Voice.java), at most a few per second, and stops working when turned off or
+replaced in Settings. Unlike the signed requests, the key itself crosses the home network with every command, so
+anyone on the same Wi-Fi who sees it can use it until it is turned off. Guests cannot make one.
+
 **Photos** a phone sends (at most 3 MB each, signed like every request) are kept in the app's private cache only
 while the slideshow is open, and deleted when it closes or when the remote starts.
 
