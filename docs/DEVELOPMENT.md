@@ -28,7 +28,7 @@ The phone needs no app (Android phones can get an optional one, below). The devi
 | `MdnsResponder.java` | Answers mDNS `A` queries for the device's own name, e.g. `living-room-3f2a.local`. |
 | `NetUtil.java`, `Qr.java` | The device's IPv4 address; QR bitmaps. |
 | `res/raw/remote.html` | The whole phone app: one file, no framework, no external requests. Colours are CSS variables at the top. |
-| `phone/` | The optional Android phone app (about 20 KB): a full-screen WebView on the remote page. Finds devices over DNS-SD (TXT `id`), keeps the page's storage under that id (`window.PhoneRemoteApp`, `Bridge.java`) so a new address keeps the pairing, speech through `RecognizerIntent` (`appHeard`), back button through `appBack`, Share → link. Built with the TV app and carried in its assets. |
+| `phone/` | The optional Android phone app (about 400 KB, mostly the Play services QR scanner): a full-screen WebView on the remote page. Finds devices over DNS-SD (TXT `id`), keeps the page's storage under that id (`window.PhoneRemoteApp`, `Bridge.java`) so a new address keeps the pairing, speech through `RecognizerIntent` (`appHeard`), back button through `appBack`, Share → link, QR scan (Google code scanner: no camera permission). Built with the TV app and carried in its assets. |
 | `res/values/config.xml` | Everything device-specific: port, mDNS name, projector/TV, extra home or hidden packages, mouse-mode property, YouTube packages. |
 
 ### Arrows and OK

@@ -44,3 +44,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 }
+
+dependencies {
+    // Google's QR scanner (part of Play services): its own camera screen, so this app needs no camera permission.
+    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
+}

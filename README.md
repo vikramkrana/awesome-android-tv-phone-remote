@@ -51,7 +51,7 @@ was specific to it has been replaced by detection or by a setting, see
 
 ## Quick start
 
-0. **Get the APK:** [`dist/phone-remote-1.2.apk`](dist/phone-remote-1.2.apk) (175 KB, debug-signed), or
+0. **Get the APK:** [`dist/phone-remote-1.2.apk`](dist/phone-remote-1.2.apk) (420 KB, debug-signed), or
    [build it](#build).
 1. **Install** the APK on the projector or TV, either way:
    - `adb install app-release.apk`, or
@@ -59,7 +59,7 @@ was specific to it has been replaced by detection or by a setting, see
 2. **Open Phone Remote** on the device and choose **Turn on**, read what it allows, then switch **Phone Remote** on.
    (With ADB you can do this from the computer instead, see the [guide](docs/GUIDE.md#2-switch-the-remote-on).)
 3. **Press Home.** Scan the QR card with the phone's camera, type the PIN from the big screen.
-4. On iPhone: **Share → Add to Home Screen** while "You're connected" is showing. On Android: tap **Download the app** on the "You're connected" screen (or Projector tab → **Get the Android app**). Chrome cannot add a shortcut to a page from a home device, so the projector hands out a small app instead (`phone/`, about 20 KB): full screen, finds the projector on the Wi-Fi by itself, stays paired when its address changes, uses the phone's voice typing.
+4. On iPhone: **Share → Add to Home Screen** while "You're connected" is showing. On Android: tap **Download the app** on the "You're connected" screen (or Projector tab → **Get the Android app**). Chrome cannot add a shortcut to a page from a home device, so the projector hands out a small app instead (`phone/`, about 400 KB): full screen, finds the projector on the Wi-Fi by itself, stays paired when its address changes, uses the phone's voice typing, can scan the QR.
 
 The full walk-through, with a picture of every screen: **[docs/GUIDE.md](docs/GUIDE.md)**.
 

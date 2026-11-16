@@ -56,6 +56,7 @@ public class MainActivity extends Activity implements Finder.Listener {
     private TextView title, subtitle;
     private ProgressBar spinner;
     private Button retry;
+    private TextView scan;
     private boolean loaded;
     private String pendingShare;
 
@@ -195,6 +196,35 @@ public class MainActivity extends Activity implements Finder.Listener {
                 .putString("id", id == null || id.isEmpty() ? null : id).putString("name", name).apply();
         hideOverlay();
         finder.stop();
+    }
+
+    // ---- QR -----------------------------------------------------------------------------------------------------------
+
+    /** The QR on the big screen (Home card or the Phone Remote screen) holds the page's address. */
+    private void scanQr() {
+        com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions options =
+                new com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_QR_CODE).build();
+        com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(this, options).startScan()
+                .addOnSuccessListener(code -> useCode(code.getRawValue()))
+                .addOnFailureListener(e -> toast("The QR scanner is not available on this phone"));
+    }
+
+    private void useCode(String value) {
+        Uri u = value == null ? null : Uri.parse(value.trim());
+        if (u == null || !"http".equals(u.getScheme()) || !onThisNetwork(u.getHost())) {
+            toast("That is not a Phone Remote code");
+            return;
+        }
+        // Another device than the one used last: forget its id so the page sets the new one.
+        prefs.edit().remove("id").remove("name").putString("url", u.getScheme() + "://" + u.getAuthority() + "/").apply();
+        finder.stop();
+        showOverlay("Connecting", u.getAuthority(), true);
+        open(value.trim());
+    }
+
+    private void toast(String message) {
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
     }
 
     // ---- voice ------------------------------------------------------------------------------------------------------
@@ -358,6 +388,14 @@ public class MainActivity extends Activity implements Finder.Listener {
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(dp(180), dp(48));
         rp.topMargin = dp(24);
         overlay.addView(retry, rp);
+
+        scan = text(16, ACCENT, Typeface.BOLD);
+        scan.setText("Scan the QR code");
+        scan.setPadding(dp(18), dp(14), dp(18), dp(14));
+        scan.setOnClickListener(v -> scanQr());
+        LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        qp.topMargin = dp(8);
+        overlay.addView(scan, qp);
 
         root.addView(overlay, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
