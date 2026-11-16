@@ -123,7 +123,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, "text/plain", TOKEN)
         if path == "/api/state":
             name = "TV" if self.kind == "tv" else "Projector"
-            state = {"name": name, "phone": "iPhone", "pointer": scene == "mouse", "youtube": True}
+            state = {"name": name, "phone": "iPhone", "pointer": scene == "mouse", "youtube": True, "focus": True}
             if scene not in ("projector-home",):
                 state["current"] = {"pkg": APPS[0][0], "label": APPS[0][1]}
             state.update({"vol": 9, "volMax": 15, "volCap": 15, "muted": False, "canSleep": True,

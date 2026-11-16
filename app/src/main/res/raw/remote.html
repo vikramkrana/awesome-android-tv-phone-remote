@@ -221,7 +221,16 @@
   .hrocker button { width: 64px; height: 56px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
   .hrocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
   .hrocker button.down { background: rgba(255,255,255,.14); border-radius: 28px; transform: scale(.94); }
-  #padWrap { position: relative; }
+  #padWrap { position: relative; flex: 0 0 auto; }
+  /* Volume on the left of the ring, upright: + on top. */
+  .mid { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 6px; }
+  .vrocker { width: 60px; height: 200px; border-radius: 30px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+  .vrocker button { width: 60px; height: 76px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
+  .vrocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
+  .vrocker button.down { background: rgba(255,255,255,.14); border-radius: 30px; transform: scale(.94); }
+  @media (max-width: 350px) { .mid .pad { transform: scale(.88); margin: -14px; } }
+  .af { padding: 0 18px; height: 56px; font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; flex: 0 0 auto; }
+  #focusRow .hrocker { margin: 0 10px 0 0; flex: 1 1 auto; min-width: 0; }
   .modeBtn { position: absolute; right: 2px; bottom: 0; width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent; color: var(--faint); display: flex; align-items: center; justify-content: center; z-index: 3; }
   .modeBtn.down { background: rgba(255,255,255,.1); color: var(--text); }
   /* Full-screen preview: fills the screen; held upright, the picture turns sideways to use the whole phone. */
@@ -328,32 +337,38 @@
     </div>
     <div class="note hidden" id="ptrNote" role="status"><b>Mouse mode is on</b> (the mouse button on the {{kind}}'s own remote). The phone's arrows still move the selection; press that mouse button again to hide the pointer.</div>
     <div class="remote">
-      <div class="corner up u2">
-        <button class="key round" aria-label="Mute" data-k="mute"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mute"/></svg></button>
+      <div class="corner up u2 hidden" id="focusRow">
         <div class="key hrocker">
-          <button aria-label="Volume down" data-k="voldown" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-minus"/></svg></button>
-          <span>VOL</span>
-          <button aria-label="Volume up" data-k="volup" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-plus"/></svg></button>
+          <button aria-label="Focus out" data-k="focusout" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-minus"/></svg></button>
+          <span>FOCUS</span>
+          <button aria-label="Focus in" data-k="focusin" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-plus"/></svg></button>
         </div>
-        <button class="key round blue" aria-label="Voice" data-sheet="voice"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mic"/></svg></button>
+        <button class="key pill press af" aria-label="Auto focus" data-k="autofocus">Auto focus</button>
       </div>
 
-      <div class="up u3" id="padWrap">
-        <div class="pad" id="pad">
-          <button class="arrow u" aria-label="Up" data-k="up" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-up"/></svg></button>
-          <button class="arrow d" aria-label="Down" data-k="down" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></button>
-          <button class="arrow l" aria-label="Left" data-k="left" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-left"/></svg></button>
-          <button class="arrow r" aria-label="Right" data-k="right" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-right"/></svg></button>
-          <button class="ok press" data-k="ok">OK</button>
+      <div class="mid up u3">
+        <div class="key vrocker">
+          <button aria-label="Volume up" data-k="volup" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-plus"/></svg></button>
+          <span>VOL</span>
+          <button aria-label="Volume down" data-k="voldown" data-hold><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round"><use href="#i-minus"/></svg></button>
         </div>
-        <button class="modeBtn" aria-label="Touchpad" id="modeBtn"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="modeIcon"><use href="#i-touch"/></svg></button>
-        <div class="touch hidden" id="touch"><b>Swipe to move, tap to select</b>Swipe and hold to keep moving · hold still for a long press · two fingers scroll a page</div>
+        <div id="padWrap">
+          <div class="pad" id="pad">
+            <button class="arrow u" aria-label="Up" data-k="up" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-up"/></svg></button>
+            <button class="arrow d" aria-label="Down" data-k="down" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg></button>
+            <button class="arrow l" aria-label="Left" data-k="left" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-left"/></svg></button>
+            <button class="arrow r" aria-label="Right" data-k="right" data-hold><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-right"/></svg></button>
+            <button class="ok press" data-k="ok">OK</button>
+          </div>
+          <button class="modeBtn" aria-label="Touchpad" id="modeBtn"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="modeIcon"><use href="#i-touch"/></svg></button>
+          <div class="touch hidden" id="touch"><b>Swipe to move, tap to select</b>Swipe and hold to keep moving · hold still for a long press · two fingers scroll a page</div>
+        </div>
       </div>
 
       <div class="corner up u4">
         <button class="key round lg" aria-label="Back" data-k="back"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-back"/></svg></button>
-        <button class="key round lg" aria-label="Play or pause" data-k="playpause"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linejoin="round"><use href="#i-play"/></svg></button>
         <button class="key round lg" aria-label="Home" data-k="home"><svg width="24" height="24" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-home"/></svg></button>
+        <button class="key round lg" aria-label="Mute" data-k="mute"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mute"/></svg></button>
       </div>
 
       <div class="quick up u4" id="quick"></div>
@@ -744,6 +759,8 @@
     const changed = JSON.stringify(s) !== JSON.stringify(state);
     state = s;
     $("ptrNote").classList.toggle("hidden", !s.pointer);
+    // Lens focus: only on projectors whose focus the remote knows how to drive.
+    $("focusRow").classList.toggle("hidden", !s.focus);
     // No YouTube app on the device: no "Search YouTube".
     document.querySelectorAll("[data-mode=search]").forEach((el) => el.classList.toggle("hidden", s.youtube === false));
     document.querySelectorAll(".devName").forEach((el) => (el.textContent = s.name));
