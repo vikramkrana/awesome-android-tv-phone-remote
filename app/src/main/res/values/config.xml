@@ -27,6 +27,12 @@
     <string name="mouse_mode_property" translatable="false">sys.KeyMouse.mKeyMouseState</string>
 
     <!-- Apps that take a search straight from the phone ("Search YouTube"), first installed one wins. -->
+    <!-- Apps made for touch screens that ignore the D-pad (TouchNav.java): while one is in front, the arrows move a
+         highlight ring over its items and OK taps. Netflix's phone app is the Netflix most uncertified projectors run. -->
+    <string-array name="touch_apps" translatable="false">
+        <item>com.netflix.mediaclient</item>
+        <item>com.amazon.avod.thirdpartyclient</item>
+    </string-array>
     <string-array name="youtube_packages" translatable="false">
         <item>com.google.android.youtube.tv</item>
         <item>com.google.android.youtube</item>

@@ -70,6 +70,7 @@ public class RemoteService extends AccessibilityService {
     private View qrCard;
     private volatile String shownPackage = "";
     private Apps apps;
+    private TouchNav touchNav;
     /** Phones that have used the remote since the projector started. */
     private final Set<String> seenThisBoot = Collections.synchronizedSet(new HashSet<>());
     private final Runnable hidePinLater = this::hidePin;
@@ -83,6 +84,7 @@ public class RemoteService extends AccessibilityService {
         instance = this;
         pairing = Pairing.get(this);
         apps = new Apps(this);
+        touchNav = new TouchNav(this);
         server = new WebServer(this, pairing, getResources().getInteger(R.integer.port));
         server.start();
         mdns = new MdnsResponder(this, localName(this));
@@ -180,6 +182,14 @@ public class RemoteService extends AccessibilityService {
         if (event.getPackageName() == null) return;
         String pkg = event.getPackageName().toString();
         int type = event.getEventType();
+        if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED && touchNav != null && !pkg.equals(getPackageName())) {
+            main.removeCallbacks(touchRefresh);
+            main.postDelayed(touchRefresh, 120);
+        }
+        if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && touchNav != null && !pkg.equals(getPackageName())
+                && !pkg.equals("com.android.systemui")) {
+            touchNav.reset();
+        }
         if (type == AccessibilityEvent.TYPE_VIEW_FOCUSED || type == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
             // Home scrolled or moved focus: its rows may now run under the card. Check once the scroll settles.
             if (homes().contains(pkg) && qrCard != null) {
@@ -202,6 +212,24 @@ public class RemoteService extends AccessibilityService {
         boolean ownScreen = pkg.equals(getPackageName()) && cls != null && cls.toString().endsWith("Activity");
         if ((pkg.equals(getPackageName()) && !ownScreen) || pkg.equals("com.android.systemui") || pkg.equals("android")) return;
         onPackageShown(pkg);
+    }
+
+    private final Runnable touchRefresh = () -> { if (touchNav != null) touchNav.refresh(); };
+
+    /** The projector's own remote, only while a touch-only app is in front (TouchNav); everything else passes. */
+    @Override
+    protected boolean onKeyEvent(KeyEvent event) {
+        if (touchNav == null || pointerMode()) return false;
+        return touchNav.onKey(event);
+    }
+
+    /** An arrow or OK from the phone while a touch-only app is in front. */
+    private boolean touchKey(int direction, int globalAction) {
+        main.post(() -> {
+            boolean used = direction == 0 ? touchNav.ok() : touchNav.move(direction);
+            if (!used) performGlobalAction(globalAction);
+        });
+        return true;
     }
 
     /**
@@ -757,6 +785,16 @@ public class RemoteService extends AccessibilityService {
 
     /** One remote button. Returns false for an unknown name. */
     boolean key(String name) {
+        if (touchNav != null && !pointerMode() && touchNav.active()) {
+            switch (name) {
+                case "up": return touchKey(View.FOCUS_UP, GLOBAL_ACTION_DPAD_UP);
+                case "down": return touchKey(View.FOCUS_DOWN, GLOBAL_ACTION_DPAD_DOWN);
+                case "left": return touchKey(View.FOCUS_LEFT, GLOBAL_ACTION_DPAD_LEFT);
+                case "right": return touchKey(View.FOCUS_RIGHT, GLOBAL_ACTION_DPAD_RIGHT);
+                case "ok": return touchKey(0, GLOBAL_ACTION_DPAD_CENTER);
+                default: break;
+            }
+        }
         switch (name) {
             case "up": return dpad(GLOBAL_ACTION_DPAD_UP, View.FOCUS_UP);
             case "down": return dpad(GLOBAL_ACTION_DPAD_DOWN, View.FOCUS_DOWN);
