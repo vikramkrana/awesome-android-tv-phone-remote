@@ -251,6 +251,26 @@ public class RemoteService extends AccessibilityService {
         }
     }
 
+    /** The lowest edge of Home's buttons in the top right quarter of the screen (its top bar), in pixels; 0 if none. */
+    private int topRightButtonsBottom() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null || root.getPackageName() == null || !homes().contains(root.getPackageName().toString())) return 0;
+        android.util.DisplayMetrics screen = getResources().getDisplayMetrics();
+        return lowestButton(root, 0, screen.widthPixels / 2, screen.heightPixels / 3);
+    }
+
+    private int lowestButton(AccessibilityNodeInfo node, int depth, int minLeft, int maxTop) {
+        if (node == null || depth > 30) return 0;
+        int lowest = 0;
+        if (node.isFocusable() && node.isVisibleToUser()) {
+            android.graphics.Rect r = new android.graphics.Rect();
+            node.getBoundsInScreen(r);
+            if (r.left >= minLeft && r.top < maxTop && r.height() < maxTop) lowest = r.bottom;
+        }
+        for (int i = 0; i < node.getChildCount(); i++) lowest = Math.max(lowest, lowestButton(node.getChild(i), depth + 1, minLeft, maxTop));
+        return lowest;
+    }
+
     private boolean focusableUnder(AccessibilityNodeInfo node, int depth) {
         if (node == null || depth > 30) return false;
         if (node.isFocusable() && node.isVisibleToUser()) {
@@ -1034,8 +1054,10 @@ public class RemoteService extends AccessibilityService {
             // Top right sits under a launcher's clock/settings row; the other corners keep a plain margin.
             int gravity = (corner == 0 || corner == 3 ? Gravity.TOP : Gravity.BOTTOM)
                     | (corner == 0 || corner == 1 ? Gravity.END : Gravity.START);
-            int y = corner == 0 || corner == 3 ? 112 : 52;
-            wm().addView(card, overlayParams(gravity, Math.round(dp(52)), Math.round(dp(y))));
+            int y = corner == 0 || corner == 3 ? Math.round(dp(112)) : Math.round(dp(52));
+            // Top right: just below the launcher's own buttons there, wherever its layout put them.
+            if (corner == 0) y = Math.max(Math.round(dp(96)), topRightButtonsBottom() + Math.round(dp(14)));
+            wm().addView(card, overlayParams(gravity, Math.round(dp(52)), y));
             qrCard = card;
             cardState = state;
             card.setAlpha(0f);
