@@ -34,6 +34,7 @@ public class SelfEnable extends BroadcastReceiver {
         if (!Intent.ACTION_BOOT_COMPLETED.equals(action) && !RECHECK.equals(action)) return;
         if (!allowed(context)) return;
         ensure(context);
+        rebindIfStuck(context);
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             for (int i = 0; i < RECHECK_AFTER_MS.length; i++) {
@@ -47,6 +48,34 @@ public class SelfEnable extends BroadcastReceiver {
     /** Whether the owner gave this app the right to switch itself on. */
     static boolean allowed(Context context) {
         return context.checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * The remote is listed as on but Android never started it: firmware that holds back sideloaded apps at boot
+     * skips the bind. Takes it off the list and puts it back, which makes Android bind it now. Needs the grant.
+     */
+    static void rebindIfStuck(Context context) {
+        if (RemoteService.instance != null || !allowed(context)) return;
+        try {
+            ComponentName me = new ComponentName(context, RemoteService.class);
+            String current = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (current == null) current = "";
+            StringBuilder others = new StringBuilder();
+            for (String part : current.split(":")) {
+                if (part.isEmpty() || me.equals(ComponentName.unflattenFromString(part))) continue;
+                if (others.length() > 0) others.append(':');
+                others.append(part);
+            }
+            Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    others.toString());
+            String back = others.length() == 0 ? me.flattenToString() : others + ":" + me.flattenToString();
+            Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, back);
+            Settings.Secure.putInt(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+            Log.i(TAG, "remote was on but not started: rebound");
+        } catch (RuntimeException failure) {
+            Log.w(TAG, "cannot rebind the remote: " + failure);
+        }
     }
 
     /** Adds the remote to the enabled accessibility services, keeping the others. True when it is (now) listed. */
