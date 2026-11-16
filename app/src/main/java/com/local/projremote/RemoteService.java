@@ -621,6 +621,7 @@ public class RemoteService extends AccessibilityService {
                         .put("volCap", phone.guest() ? (int) Math.floor(max * GUEST_VOLUME) : max)
                         .put("muted", audio.isStreamMute(AudioManager.STREAM_MUSIC));
             }
+            s.put("focus", Focus.supported(this));
             s.put("canSleep", android.os.Build.VERSION.SDK_INT >= 28).put("sleepIn", sleepIn());
             s.put("preview", !phone.guest() && previewAllowed(this) && android.os.Build.VERSION.SDK_INT >= 30);
             s.put("media", NowPlaying.allowed(this) ? NowPlaying.json(this, apps) : null);
@@ -664,6 +665,10 @@ public class RemoteService extends AccessibilityService {
             case "longok": return longPressFocused();
             case "pageup": return page(View.FOCUS_UP, GLOBAL_ACTION_DPAD_UP);
             case "pagedown": return page(View.FOCUS_DOWN, GLOBAL_ACTION_DPAD_DOWN);
+            // Lens focus, on projectors that have a focus motor (Focus.java).
+            case "focusin": return Focus.move(this, true);
+            case "focusout": return Focus.move(this, false);
+            case "autofocus": return Focus.auto(this);
             default: return false;
         }
     }

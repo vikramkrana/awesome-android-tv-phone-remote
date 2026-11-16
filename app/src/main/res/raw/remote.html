@@ -100,7 +100,7 @@
   .pad .ok { z-index: 2; position: absolute; left: 64px; top: 64px; width: 112px; height: 112px; border-radius: 56px;
     background: #232427; font-size: 22px; font-weight: 600; box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); }
   .touch { width: 100%; height: 240px; border-radius: 32px; background: var(--key); display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 6px; color: var(--dim); font-size: 14px; text-align: center;
+    align-items: center; justify-content: center; gap: 6px; color: var(--dim); font-size: 14px; text-align: center; padding: 0 16px; box-sizing: border-box;
     touch-action: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); transition: box-shadow .1s; }
   .touch.flash { box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
   .touch b { color: var(--text); font-size: 16px; font-weight: 600; }
@@ -221,7 +221,8 @@
   .hrocker button { width: 64px; height: 56px; background: transparent; border: 0; display: flex; align-items: center; justify-content: center; }
   .hrocker span { font-size: 10px; font-weight: 600; letter-spacing: .6px; color: var(--dim); }
   .hrocker button.down { background: rgba(255,255,255,.14); border-radius: 28px; transform: scale(.94); }
-  #padWrap { position: relative; flex: 0 0 auto; }
+  /* Takes the room right of the volume; the ring keeps its size, the touchpad fills it. */
+  #padWrap { position: relative; flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
   /* Volume on the left of the ring, upright: + on top. */
   .mid { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 6px; }
   .vrocker { width: 60px; height: 200px; border-radius: 30px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; flex: 0 0 auto; }
