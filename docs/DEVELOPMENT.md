@@ -24,6 +24,9 @@ The phone needs no app (Android phones can get an optional one, below). The devi
 | `Peers.java` | DNS-SD `_phoneremote._tcp`: announces this device and lists others for the phone's switcher. |
 | `Updates.java` | Optional daily check of the GitHub releases of `project_url`. |
 | `Diagnostics.java` | The plain-text report. |
+| `Focus.java` | Lens motor and auto focus through Joyar's `DispatcherService` (`motorCtrl` 1/2/0, `action=focus`). |
+| `DeviceTools.java` | Picture & input and power off where the firmware has them: Joyar camera correction, Siviton system menu (Projection page, power menu), MediaTek Source panel. |
+| `Photos.java` | The slideshow activity; pictures in the cache, deleted when it closes. |
 | `SelfEnable.java` | Boot receiver: re-enables the service on firmware that drops it, if the owner granted `WRITE_SECURE_SETTINGS`. `MediaListener` runs it too after boot, for firmware that blocks the boot broadcast. |
 | `MdnsResponder.java` | Answers mDNS `A` queries for the device's own name, e.g. `living-room-3f2a.local`. |
 | `NetUtil.java`, `Qr.java` | The device's IPv4 address; QR bitmaps. |
@@ -88,6 +91,13 @@ below the highest seen.
 | `/api/projector` | yes | | opens the system settings screen |
 | `/api/rename` | yes | the new name | |
 | `/api/unpair` | yes | | removes this phone, clears the cookie |
+| `/api/key` focus | yes | `focusin` `focusout` `autofocus` | where `state.focus` |
+| `/api/tool` | yes, not guests/kids | `autocorrect` `keystone` `zoom` `inputs` | where listed in `state.tools` |
+| `/api/poweroff` | yes, not guests/kids | | where `state.powerOff` |
+| `/api/bedtime` | yes, not guests/kids | minutes after midnight, `-1` off | `state.bedtime` |
+| `/api/kidapps` | yes, family | `pkg` adds, `-pkg` removes | `state.kidApps` |
+| `/api/photo?i=&n=` | yes | base64 JPEG, up to 3 MB | picture `i` of `n`; `i=0` starts a new slideshow |
+| `/api/photos` | yes | `next` `prev` `pause` `play` `stop` | `state.photos` while one is open |
 
 Example in Python, with a token copied from a paired browser's storage (`localStorage.token`):
 

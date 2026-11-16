@@ -18,8 +18,17 @@ who can reach it, and what it does not protect against.
 - See the names and addresses of other devices running this remote on the same network
 
 **Guest phones** (the owner's choice, per phone or for all new phones) cannot open the system settings, rename,
-sleep, set the timer, see the screen or copy diagnostics; their volume stops at 70%, and they are removed after 24
-hours.
+sleep, set the timer or bedtime, power off, use Picture & input, see the screen or copy diagnostics; their volume
+stops at 70%, and they are removed after 24 hours. **Kids phones** have the same limits without the time limit,
+and in addition open only the apps family phones ticked, cannot send links, and search YouTube only when a YouTube
+app is ticked.
+
+**Photos** a phone sends (at most 3 MB each, signed like every request) are kept in the app's private cache only
+while the slideshow is open, and deleted when it closes or when the remote starts.
+
+**Firmware shortcuts:** focus, picture and power use services the projector's own firmware exposes to every app
+(Joyar `DispatcherService`, Siviton `SystemUIService`, MediaTek's input panel), started with the same commands as
+its own remote and menus. Nothing else is called, and only where they exist.
 
 It cannot install or remove apps, read files, change system settings, or run commands. It cannot read what is on the
 screen unless the owner switches on Screen preview, and then only family phones get the picture.

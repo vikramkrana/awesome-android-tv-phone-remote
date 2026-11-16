@@ -102,7 +102,10 @@ the same later.
 During that screen the address carries a single-use code, which the new icon trades for its own key the first
 time it opens.
 
-**Android:** in Chrome, ⋮ → **Add to Home screen**.
+**Android:** Chrome cannot add a shortcut to a page from a home device. Instead, on **You're connected** tap
+**Download the app** (or later: Projector tab → **Get the Android app**), open the file and allow installs from
+Chrome when asked. The app opens full screen, finds the device by itself, and can **Scan the QR code** of another
+one.
 
 After pairing, the phone is not asked for a PIN again: not when you scan the QR another time, and not when the
 browser has cleared its saved data.
@@ -115,13 +118,14 @@ browser has cleared its saved data.
 
 | Control | Does |
 |---|---|
-| ⏻ (top left) | Sleep: tap twice. Wake the device with its own remote. |
+| ⏻ (top left) | **Screen off** or **Power off** (tap twice to confirm). Where power off is not possible: sleep, tap twice. Wake the device with its own remote. |
 | Name pill (top) | Green dot = connected. Tap for the Projector/TV tab; with more than one device on the Wi-Fi, a list to switch between them. |
 | 🔍 | Type into the open app, or search YouTube from Home. Switch between the two in the sheet. |
-| 🔇 · **− VOL +** · 🎤 | Mute, volume (hold to keep changing), speak. |
+| **− FOCUS +** · **Auto focus** | Projectors with a focus motor only. Hold − or + to keep turning the lens. |
+| **VOL** (left of the ring) | + on top, − below; hold to keep changing. |
 | Ring | Up, down, left, right: the whole quarter of the ring counts. Hold to repeat. **OK** in the middle. |
 | ☝ (beside the ring) | Switch between the ring and the touchpad. |
-| ↩ · ⏯ · ⌂ | Back, play/pause, Home. |
+| ↩ · ⌂ · 🔇 | Back, Home, mute. Play/pause is on the Projector/TV tab; voice is in 🔍. |
 | Bottom row | Your four quick apps, icon and name. The one that is open now has a gold outline. Press and hold one to choose which four. |
 
 Rewind and forward, all apps and the device's settings moved to the Projector/TV and Apps tabs.
@@ -174,7 +178,13 @@ tools are left out on purpose.
 - **Volume:** a slider, for jumping straight to a level.
 - **Send a link:** paste a YouTube, Netflix, Prime Video or any web link; it opens in the matching app on the big
   screen. On Android, after adding the remote to the Home screen, **Share → (this remote)** in any app does the same.
+- **Show photos:** pick photos on this phone; they play full screen, 8 seconds each, with ◀ ⏯ ▶ and **Close**
+  here (and ← → OK Back on any remote). They are deleted from the device when the slideshow closes.
 - **Sleep timer:** 15 minutes to 2 hours; the label shows the time left. **Off** cancels.
+- **Bedtime:** the same time every night (9:30 PM to 12 AM); a note on the big screen 5 minutes before, then the
+  screen goes off. Family phones only.
+- **Picture & input:** only what the device has: **Auto correct picture** (camera focus and keystone, with a test
+  pattern), **Keystone**, **Zoom**, **Input source**.
 - **Shortcuts:** the device's own settings (picture, sound, network; focus and keystone on projectors) and Home.
 - **Other screens here:** other TVs and projectors with this remote on the same Wi-Fi. Tap one to switch; each
   pairs the phone once, on its own.
@@ -269,5 +279,8 @@ list the other devices; scanning that device's QR works anyway.
   appears on the big screen, and no paired phone is removed to make room.
 - **Remove one:** on the Phone Remote screen, select it, OK, **Remove**.
 - **Visitors:** select a phone, OK, **Make guest**; or set **New phones join as → Guests** before they pair.
+- **Children:** select a phone, OK, **Make kids phone**. On a family phone, **Apps → Kids apps**, tick the apps
+  kids phones may open. A kids phone sees only those, its volume stops at 70%, and it cannot change settings, send
+  links, or use Picture & input, the timers or bedtime.
 - **Remove all:** **Remove all phones**, OK twice.
 - A removed phone sees the pairing screen the next time it opens the remote.

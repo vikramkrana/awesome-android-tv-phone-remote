@@ -92,6 +92,7 @@ public class RemoteService extends AccessibilityService {
         registerReceiver(dreams, filter);
         main.post(syncShown);
         main.post(bedtimeCheck);
+        Photos.clearLeftovers(this);
     }
 
     /** The web server bound its port: the QR can now carry the address. */

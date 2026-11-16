@@ -19,6 +19,9 @@ switch them on, what is playing (title, artist, artwork, position) and a small p
 diagnostics report when a phone asks for one (device model, Android version, setup; no names or keys). Guest phones
 never get the screen picture or the report.
 
+**Photos:** pictures a phone sends to show are kept in the app's private storage only while the slideshow is
+open, and deleted when it closes. They never leave your network.
+
 **Accessibility service:** used to press keys, move the selection and type into the selected text box for paired
 phones, and to know which app is in front. Screen content is not recorded or sent, except the optional screen
 picture above.

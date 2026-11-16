@@ -16,6 +16,9 @@
 | iPhone Home Screen icon asks for a PIN | The icon was added when "You're connected" was not on screen. Pair it once, or delete the icon and add it again from **Settings → Add to Home Screen**. |
 | "Can't reach …" | The device is off, asleep with Wi-Fi off, or on another network. The page retries by itself. |
 | Android app says "not answering" | The device is off, Phone Remote is not running on it, or the phone is on another Wi-Fi. The app finds the device again by itself when its address changes. |
+| No focus buttons on the remote | Shown only on projectors whose focus motor the remote knows (Joyar firmware). Other projectors: use the device's own remote or its settings. |
+| A photo is skipped | The phone's browser could not read it (some Android browsers cannot open HEIC). Send it as JPEG. |
+| No "phone connected" or bedtime note on screen | Turned off with **Show when phones connect** on the device, or the remote was updated while the screen was busy; the bedtime note shows anyway. |
 | Blank screen when opening the remote | The device is off (or on another network). The remote's page comes from the device itself, and a page from a home device (plain HTTP) cannot be kept offline on the phone. Switch the device on, wait until its Home screen shows, then open the remote again. |
 | The same phone is listed twice | Two browsers on one phone (Safari and Chrome) are two phones to the device. Remove the one you do not use. |
 

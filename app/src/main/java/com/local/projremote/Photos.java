@@ -91,6 +91,11 @@ public class Photos extends Activity {
         return showing != null;
     }
 
+    /** At start: a slideshow cut short by power-off left its pictures behind. */
+    static void clearLeftovers(Context c) {
+        if (showing == null) clear(c);
+    }
+
     private static void clear(Context c) {
         File[] old = dir(c).listFiles();
         if (old != null) for (File f : old) //noinspection ResultOfMethodCallIgnored

@@ -21,7 +21,12 @@ not certified Android TV devices. It needs no root and no Google services, and i
 
 | | |
 |---|---|
-| **Remote** | A metal D-pad with OK; mute, volume and voice above it; Back, play/pause and Home below. Arrows and volume repeat while held. Every press gives a visible press and a haptic tick. |
+| **Remote** | A metal D-pad with OK, upright volume beside it, Back, Home and mute below. It scales to any phone, from 320 px up to tablets. Arrows and volume repeat while held. Every press gives a visible press and a haptic tick. |
+| **Focus** | On projectors with a focus motor (Joyar firmware, e.g. PixPaq): Focus − / + (hold to keep turning) and Auto focus on the remote. |
+| **Picture & input** | Where the firmware has them: auto correct (camera focus and keystone), keystone, zoom, input source. |
+| **Power and bedtime** | ⏻ opens Screen off / Power off. Bedtime: the screen goes off at the same time every night, after a 5-minute warning on screen. |
+| **Show photos** | Pick photos on the phone; they play full screen as a slideshow. Nothing is kept on the device afterwards. |
+| **Kids phones** | A role set on the device: only the apps a family phone ticks, volume up to 70%, no settings. |
 | **Touchpad** | Swipe to move, tap to select, swipe and hold to keep moving, hold still for a long press, two fingers to scroll a page. |
 | **Now playing** | Title, artwork, position and seeking, ±10 s, previous/next, for whatever plays on the device. |
 | **Send a link** | Paste a YouTube or web link and it opens on the big screen; on Android also from the Share menu. |
@@ -34,7 +39,8 @@ not certified Android TV devices. It needs no root and no Google services, and i
 | **Search YouTube** | Say or type a search; YouTube opens on the results. |
 | **Pairing** | A QR card on the Home screen opens the page; a 6-digit PIN on the big screen proves you are in the room. Pair once: the phone is never asked again. |
 | **Many phones** | Up to a limit you set (5 by default, up to 20), each with a name and a "connected now" dot. New phones can be switched off. |
-| **Private** | Local network only. No account, no cloud, no analytics, about 150 KB. |
+| **Android app** | Optional, handed out by the device itself: full screen, finds the device on the Wi-Fi, scans its QR, stays paired when its address changes, the phone's own voice typing. |
+| **Private** | Local network only. No account, no cloud, no analytics. |
 
 ## Does it work on my device?
 
@@ -51,7 +57,7 @@ was specific to it has been replaced by detection or by a setting, see
 
 ## Quick start
 
-0. **Get the APK:** [`dist/phone-remote-1.2.apk`](dist/phone-remote-1.2.apk) (420 KB, debug-signed), or
+0. **Get the APK:** [`dist/phone-remote-1.3.apk`](dist/phone-remote-1.3.apk) (about 420 KB with the Android app inside, debug-signed), or
    [build it](#build).
 1. **Install** the APK on the projector or TV, either way:
    - `adb install app-release.apk`, or

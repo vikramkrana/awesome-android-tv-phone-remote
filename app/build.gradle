@@ -11,8 +11,8 @@ android {
         // Android 13+ presses the real D-pad keys (GLOBAL_ACTION_DPAD_*); Android 8 to 12 moves the focus instead.
         minSdk 26
         targetSdk 34
-        versionCode 3
-        versionName '1.2'
+        versionCode 4
+        versionName '1.3'
     }
 
     // Your own release key (for the Play Store or your own releases): copy keystore.properties.example to
