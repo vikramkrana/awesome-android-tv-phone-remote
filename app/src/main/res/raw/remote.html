@@ -520,16 +520,15 @@
         <button class="item press" id="siriBtn"><div class="grow">Set up "Hey Siri, Projector"<small id="siriState">An iPhone shortcut that sends what you say to the {{kind}}</small></div></button>
       </div>
       <div id="siriHow" class="hidden" style="padding:6px 4px 4px;font-size:13.5px;line-height:1.55;color:#D9D6E0">
-        <p style="margin:4px 0 8px">This phone's address for Siri (keep it private: it controls the {{kind}} like this phone):</p>
-        <div class="row"><input class="field" id="siriUrl" readonly style="font-size:12px"><button class="btn press" id="siriCopy" type="button" style="flex-shrink:0;padding:0 16px">Copy</button></div>
-        <ol style="margin:12px 0 4px;padding-left:20px">
-          <li>Open <b>Shortcuts</b> → <b>+</b> → name it <b>Projector</b>.</li>
-          <li>Add <b>Dictate Text</b>.</li>
-          <li>Add <b>Get Contents of URL</b>, paste the address, and at its end insert <b>Dictated Text</b>.</li>
-          <li>Add <b>Speak Text</b> (or Show Result) with <b>Contents of URL</b>.</li>
+        <button class="btn primary press" id="siriAdd" type="button" style="width:100%;margin:6px 0 10px">Add to Siri</button>
+        <ol style="margin:0 0 6px;padding-left:20px">
+          <li><b>Add to Siri</b> copies this phone's address and opens Shortcuts.</li>
+          <li>Tap the address box there, <b>Paste</b>, then <b>Add Shortcut</b>.</li>
           <li>Say <b>"Hey Siri, Projector"</b>, then e.g. <i>open YouTube</i>.</li>
         </ol>
-        <p style="margin:8px 0 0;color:var(--dim)">One-word shortcuts work too: put e.g. <b>pause</b> after <code>say=</code> and name the shortcut "Pause projector". Works on the home Wi-Fi only.</p>
+        <p style="margin:8px 0 6px;color:var(--dim)">Shortcuts didn't open? <a href="/Projector.shortcut" style="color:var(--text)">Get the shortcut</a>. The address (keep it private: it controls the {{kind}} like this phone):</p>
+        <div class="row"><input class="field" id="siriUrl" readonly style="font-size:12px"><button class="btn press" id="siriCopy" type="button" style="flex-shrink:0;padding:0 16px">Copy</button></div>
+        <p style="margin:8px 0 0;color:var(--dim)">One-word shortcuts work too: put e.g. <b>pause</b> after <code>say=</code> in Get Contents of URL. Works on the home Wi-Fi only.</p>
         <button class="linkbtn" id="siriOff" type="button" style="margin-top:10px;color:#FF8A80">Turn off this key</button>
       </div></div>
     </div>
@@ -857,6 +856,8 @@
     document.querySelectorAll(".guestHide, .guestDim").forEach((el) => el.classList.toggle("hidden", g));
     $("guestNote").classList.toggle("hidden", !g);
     $("kidsBtn").classList.toggle("hidden", g || !Array.isArray(s.kidApps));
+    // Siri is for iPhones; Android phones use the command box above it.
+    if (!isIOS) $("siriWrap").classList.add("hidden");
     if (s.kid) $("guestNote").innerHTML = "<b>Kids phone</b> · the apps a parent chose, volume up to 70%. Settings and sleep stay with the family's phones.";
     if (s.guest) { const h = Math.max(1, Math.ceil(s.guestLeft / 3600));
       $("guestNote").innerHTML = "<b>Guest</b> · this phone can steer the {{kind}} for " + h + (h === 1 ? " more hour" : " more hours") + ". Settings, sleep and the screen preview stay with the owner's phones."; }
@@ -1557,6 +1558,19 @@
     const r = await api("/api/voicekey", "new").catch(() => null);
     if (!r || !r.ok) return toast("Couldn't set it up");
     showSiri(await r.text()); refresh().catch(() => {});
+  };
+  // Copying must happen inside the tap (Safari allows it only then, and not through the async clipboard API on a
+  // page without HTTPS); then Shortcuts opens on the signed shortcut, which asks for the address once.
+  function copyAddress() {
+    const f = $("siriUrl"); f.focus(); f.select(); f.setSelectionRange(0, f.value.length);
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    f.blur(); return ok;
+  }
+  $("siriAdd").onclick = () => {
+    const ok = copyAddress();
+    toast(ok ? "Address copied. Paste it in Shortcuts" : "Copy the address below, then add the shortcut");
+    const file = location.origin + "/Projector.shortcut";
+    setTimeout(() => { location.href = "shortcuts://import-shortcut?url=" + encodeURIComponent(file) + "&name=Projector"; }, 400);
   };
   $("siriCopy").onclick = async () => {
     try { await navigator.clipboard.writeText($("siriUrl").value); toast("Copied"); }

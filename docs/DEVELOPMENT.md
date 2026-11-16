@@ -67,6 +67,7 @@ below the highest seen.
 | `GET /` | no | | the page |
 | `GET /icon.png`, `GET /manifest.json` | no | | Home Screen icon, web app manifest |
 | `GET /android.apk` | no | | the phone app (from `phone/`) |
+| `GET /Projector.shortcut` | no | | the signed Siri shortcut (`tools/siri_shortcut.py`) |
 | `/api/hello` | no | | the current epoch |
 | `/api/pair/start` | no | form: `device` | shows a PIN on the device; `429` if asked within 10 s; `423` while **Allow new phones** is off; `409` (body: the limit) when the phone limit is reached |
 | `/api/pair` | no | form: `secret` (PIN), `name`, `device` (32 hex) | the token, and the restore cookie; `403` on a wrong or expired PIN; `409`, `423` as above |

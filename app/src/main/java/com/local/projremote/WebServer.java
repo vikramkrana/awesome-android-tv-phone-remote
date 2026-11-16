@@ -188,6 +188,11 @@ final class WebServer {
                 case "/icon.png":
                     respond(out, 200, "image/png", icon(), "Cache-Control: max-age=86400\r\n");
                     return;
+                case "/Projector.shortcut":
+                    // The Siri shortcut (tools/siri_shortcut.py), signed by Apple so iPhones can add it.
+                    respond(out, 200, "application/octet-stream", siriShortcut(),
+                            "Content-Disposition: attachment; filename=\"Projector.shortcut\"\r\n");
+                    return;
                 case "/android.apk":
                     // The phone app (built from phone/ and carried in this APK's assets).
                     byte[] apk = phoneApk();
@@ -489,6 +494,21 @@ final class WebServer {
         } catch (Exception bad) {
             return "";
         }
+    }
+
+    private byte[] siriBytes;
+
+    private synchronized byte[] siriShortcut() throws IOException {
+        if (siriBytes == null) {
+            try (InputStream in = service.getResources().openRawResource(R.raw.siri_shortcut)) {
+                ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                byte[] chunk = new byte[8192];
+                int n;
+                while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+                siriBytes = buf.toByteArray();
+            }
+        }
+        return siriBytes;
     }
 
     private byte[] phoneApkBytes;

@@ -226,11 +226,15 @@ tools are left out on purpose.
 *pause*, *play*, *next*, *volume up*, *mute*, *volume 30*, *search YouTube for lofi music*, *home*, *back*,
 *focus*, *turn off the screen*, *power off*. The answer shows below the box.
 
-**Siri (iPhone):** Settings → **Set up "Hey Siri, Projector"** makes a private address for this phone. Then in
-the **Shortcuts** app: **+**, name it *Projector*; add **Dictate Text**; add **Get Contents of URL** with the
-address, and insert *Dictated Text* at its end; add **Speak Text** with *Contents of URL*. Now "Hey Siri,
-Projector", then say the command; Siri reads the answer. One-command shortcuts work too ("Hey Siri, pause
-projector": put *pause* after `say=`). **Turn off this key** there stops every shortcut that uses it. Home Wi-Fi only.
+**Siri (iPhone):** Settings → **Set up "Hey Siri, Projector"** → **Add to Siri**. The remote copies this phone's
+private address and opens Shortcuts on the *Projector* shortcut: tap its address box, **Paste**, **Add
+Shortcut**. Then "Hey Siri, Projector", and say the command; Siri reads the answer. If Shortcuts does not open,
+**Get the shortcut** downloads it, and the address is shown with a Copy button. **Turn off this key** stops every
+shortcut that uses it. Home Wi-Fi only.
+
+The shortcut itself (Dictate Text → URL Encode → Get Contents of URL → Speak Text) is built by
+`tools/siri_shortcut.py` and signed by Apple (`shortcuts sign`), so iPhones accept it; it asks for the address
+once, when it is added.
 
 ## 6. The screens on the projector or TV
 
