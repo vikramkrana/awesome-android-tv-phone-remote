@@ -391,7 +391,7 @@
 
   <!-- ===== Apps ===== -->
   <section id="vApps" class="view hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between"><h2>Apps</h2><button class="linkbtn" id="editQuick">Edit quick apps</button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between"><h2>Apps</h2><span><button class="linkbtn hidden" id="kidsBtn">Kids apps</button><button class="linkbtn" id="editQuick" style="margin-left:14px">Edit quick apps</button></span></div>
     <div id="recentWrap"><div class="label">Recent</div><div class="chiprow" id="recent"></div></div>
     <div class="label" id="appsLabel">On the {{kind}}</div>
     <div class="grid" id="grid"></div>
@@ -440,6 +440,13 @@
       <div class="label">Sleep timer <span id="timerLeft" style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)"></span></div>
       <div class="chiprow" id="timerRow">
         <button class="chip press" data-timer="0">Off</button><button class="chip press" data-timer="15">15 min</button><button class="chip press" data-timer="30">30 min</button><button class="chip press" data-timer="60">1 hour</button><button class="chip press" data-timer="90">1½ hours</button><button class="chip press" data-timer="120">2 hours</button>
+      </div>
+    </div>
+
+    <div id="bedWrap" class="hidden">
+      <div class="label">Bedtime <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)">· every night, with a 5-minute warning</span></div>
+      <div class="chiprow" id="bedRow">
+        <button class="chip press" data-bed="-1">Off</button><button class="chip press" data-bed="1290">9:30 PM</button><button class="chip press" data-bed="1320">10 PM</button><button class="chip press" data-bed="1350">10:30 PM</button><button class="chip press" data-bed="1380">11 PM</button><button class="chip press" data-bed="0">12 AM</button>
       </div>
     </div>
 
@@ -508,6 +515,16 @@
     <button data-tab="proj"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-proj"/></svg>{{Kind}}</button>
     <button data-tab="settings"><svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-gear"/></svg>Settings</button>
   </nav>
+</div>
+
+<!-- ===== Power sheet ===== -->
+<div class="sheet" id="powerSheet" role="dialog" aria-modal="true" aria-label="Power">
+  <div class="grab"></div>
+  <h3>Power</h3>
+  <div class="list" style="margin-top:8px">
+    <button class="item press" id="pwSleep"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-moon"/></svg><div class="grow">Screen off<small>Sleep. Wake it with the {{kind}}'s own remote.</small></div></button>
+    <button class="item press" id="pwOff"><svg width="22" height="22" fill="none" stroke="#FF8A80" stroke-width="1.9" stroke-linecap="round"><use href="#i-power"/></svg><div class="grow" style="color:#FF8A80">Power off<small id="pwOffHint">Switches the {{kind}} off completely</small></div></button>
+  </div>
 </div>
 
 <!-- ===== Keyboard / voice / search sheet ===== -->
@@ -586,7 +603,7 @@
   let state = { name: "{{Kind}}", phone: "", current: null };
   let apps = [];
   const icons = {};
-  let editing = false;
+  let editing = false, kidsEditing = false;
 
   function toast(msg) {
     const t = $("toast"); t.textContent = msg; t.classList.add("show");
@@ -790,15 +807,17 @@
     // Picture and input shortcuts: only those this device has.
     const tools = s.tools || [];
     document.querySelectorAll("[data-tool]").forEach((b) => b.classList.toggle("hidden", !tools.includes(b.dataset.tool)));
-    $("toolsWrap").classList.toggle("hidden", !tools.length || !!s.guest);
+    $("toolsWrap").classList.toggle("hidden", !tools.length || !!s.guest || !!s.kid);
     // No YouTube app on the device: no "Search YouTube".
     document.querySelectorAll("[data-mode=search]").forEach((el) => el.classList.toggle("hidden", s.youtube === false));
     document.querySelectorAll(".devName").forEach((el) => (el.textContent = s.name));
     // A guest: the owner's restrictions, said once at the top of Settings.
-    const g = !!s.guest;
+    const g = !!s.guest || !!s.kid;
     document.querySelectorAll(".guestHide, .guestDim").forEach((el) => el.classList.toggle("hidden", g));
     $("guestNote").classList.toggle("hidden", !g);
-    if (g) { const h = Math.max(1, Math.ceil(s.guestLeft / 3600));
+    $("kidsBtn").classList.toggle("hidden", g || !Array.isArray(s.kidApps));
+    if (s.kid) $("guestNote").innerHTML = "<b>Kids phone</b> · the apps a parent chose, volume up to 70%. Settings and sleep stay with the family's phones.";
+    if (s.guest) { const h = Math.max(1, Math.ceil(s.guestLeft / 3600));
       $("guestNote").innerHTML = "<b>Guest</b> · this phone can steer the {{kind}} for " + h + (h === 1 ? " more hour" : " more hours") + ". Settings, sleep and the screen preview stay with the owner's phones."; }
     if (changed) { renderQuick(); if (current === "apps") renderApps(); }
     if (current === "proj") { renderNow(); if (s.preview) previewLoop(); }
@@ -986,7 +1005,9 @@
     if (state.vol !== undefined && document.activeElement !== v) {
       v.max = state.volMax; v.value = state.vol; $("volNum").textContent = state.muted ? "Mute" : state.vol; setFill(v);
     }
-    $("timerWrap").classList.toggle("hidden", !state.canSleep || !!state.guest);
+    $("timerWrap").classList.toggle("hidden", !state.canSleep || !!state.guest || !!state.kid);
+    $("bedWrap").classList.toggle("hidden", !state.canSleep || !!state.guest || !!state.kid);
+    $("bedRow").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", Number(c.dataset.bed) === (state.bedtime ?? -1)));
     const left = state.sleepIn || 0;
     const span = (left >= 3600 ? Math.floor(left / 3600) + " h " : "") + Math.ceil(left % 3600 / 60) + " min";
     $("timerLeft").textContent = left ? "· sleeps in " + span : "";
@@ -1034,6 +1055,13 @@
       else toast("No app on the {{kind}} opens that link");
     } catch (e) {}
   }
+  document.querySelectorAll("[data-bed]").forEach((b) => b.addEventListener("click", async () => {
+    try {
+      const r = await api("/api/bedtime", b.dataset.bed);
+      if (r.ok) toast(b.dataset.bed === "-1" ? "Bedtime off" : "Every night at " + b.textContent + ", with a warning 5 minutes before");
+      refresh().catch(() => {});
+    } catch (e) {}
+  }));
   document.querySelectorAll("[data-timer]").forEach((b) => b.addEventListener("click", async () => {
     const n = b.dataset.timer;
     try {
@@ -1078,8 +1106,11 @@
       b.appendChild(imgFor(pkg)); b.appendChild(document.createTextNode(labelOf(pkg)));
       b.onclick = () => launch(pkg); rbox.appendChild(b);
     }
-    $("appsLabel").textContent = editing ? "Tap to choose up to 4 quick apps" : "On the {{kind}}";
+    $("appsLabel").textContent = kidsEditing ? "Tap the apps kids phones may open" : editing ? "Tap to choose up to 4 quick apps" : "On the {{kind}}";
     $("editQuick").textContent = editing ? "Done" : "Edit quick apps";
+    $("editQuick").classList.toggle("hidden", kidsEditing);
+    $("kidsBtn").textContent = kidsEditing ? "Done" : "Kids apps";
+    const kidApps = state.kidApps || [];
     const grid = $("grid"); grid.innerHTML = "";
     const quick = quickList();
     for (const a of apps) {
@@ -1087,12 +1118,22 @@
       if (state.current && state.current.pkg === a.pkg) b.classList.add("now");
       b.appendChild(imgFor(a.pkg));
       const l = document.createElement("span"); l.textContent = a.label; b.appendChild(l);
-      if (editing) {
+      if (kidsEditing) {
+        const s = document.createElement("span"); s.className = "star" + (kidApps.includes(a.pkg) ? " on" : "");
+        s.innerHTML = '<svg width="12" height="12" fill="none" stroke="#141416" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>';
+        b.appendChild(s);
+      } else if (editing) {
         const s = document.createElement("span"); s.className = "star" + (quick.includes(a.pkg) ? " on" : "");
         s.innerHTML = '<svg width="12" height="12" fill="#141416" stroke="none"><use href="#i-star"/></svg>';
         b.appendChild(s);
       }
-      b.onclick = () => {
+      b.onclick = async () => {
+        if (kidsEditing) {
+          const on = kidApps.includes(a.pkg);
+          const r = await api("/api/kidapps", (on ? "-" : "") + a.pkg).catch(() => null);
+          if (r && r.ok) { state.kidApps = on ? kidApps.filter((p) => p !== a.pkg) : kidApps.concat(a.pkg); renderApps(); }
+          return;
+        }
         if (!editing) return launch(a.pkg);
         let q = quickList();
         if (q.includes(a.pkg)) q = q.filter((p) => p !== a.pkg);
@@ -1103,6 +1144,7 @@
     }
   }
   $("editQuick").onclick = () => { editing = !editing; renderApps(); };
+  $("kidsBtn").onclick = () => { kidsEditing = !kidsEditing; editing = false; renderApps(); };
   function openQuickEditor() { editing = true; show("apps"); toast("Tap apps to choose your four quick apps"); }
 
   // ---- keyboard / voice / search sheet -----------------------------------------------------------------------------
@@ -1263,7 +1305,30 @@
   $("picker").addEventListener("click", (e) => { if (e.target.id === "picker") $("picker").classList.add("hidden"); });
   // Sleep: a second tap within 3 s confirms, so a stray tap never switches the picture off.
   let sleepArmed = 0;
+  let powerArmed = 0;
+  function openPower() {
+    powerArmed = 0; $("pwOffHint").textContent = "Switches the {{kind}} off completely";
+    $("scrim").classList.remove("hidden");
+    requestAnimationFrame(() => { $("scrim").classList.add("show"); $("powerSheet").classList.add("show"); });
+  }
+  function closePower() {
+    $("powerSheet").classList.remove("show");
+    if (!$("sheet").classList.contains("show")) { $("scrim").classList.remove("show"); setTimeout(() => $("scrim").classList.add("hidden"), 250); }
+  }
+  $("scrim").addEventListener("click", closePower);
+  $("pwSleep").onclick = async () => {
+    closePower();
+    const r = await api("/api/key", "sleep").catch(() => null);
+    toast(r && r.ok ? "Sleeping. Wake it with its own remote." : "This {{kind}} cannot be put to sleep from the phone");
+  };
+  $("pwOff").onclick = async () => {
+    if (Date.now() - powerArmed > 4000) { powerArmed = Date.now(); $("pwOffHint").textContent = "Tap again to switch off"; return; }
+    closePower();
+    const r = await api("/api/poweroff").catch(() => null);
+    toast(r && r.ok ? "Switching off. Turn it on with its own remote." : "Couldn't switch it off");
+  };
   $("sleepBtn").onclick = async () => {
+    if (state.powerOff) return openPower();
     if (Date.now() - sleepArmed > 3000) { sleepArmed = Date.now(); toast("Tap again to put the {{kind}} to sleep"); return; }
     sleepArmed = 0;
     const r = await api("/api/key", "sleep").catch(() => null);

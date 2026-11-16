@@ -91,6 +91,7 @@ public class RemoteService extends AccessibilityService {
         filter.addAction(Intent.ACTION_DREAMING_STOPPED);
         registerReceiver(dreams, filter);
         main.post(syncShown);
+        main.post(bedtimeCheck);
     }
 
     /** The web server bound its port: the QR can now carry the address. */
@@ -386,9 +387,47 @@ public class RemoteService extends AccessibilityService {
     /** A short note at the bottom of the big screen, when the owner wants them (on by default). */
     private void notice(String text) {
         if (!announceConnections(this)) return;
+        banner("📱  " + text, 3500);
+    }
+
+    private View bannerView;
+    private final Runnable hideBanner = this::removeBanner;
+
+    /**
+     * A short message at the bottom of the big screen, in this service's own overlay window. (Android's toasts are
+     * dropped for apps without notification permission, which many projectors never offer to grant.)
+     */
+    void banner(String text, long millis) {
+        main.post(() -> {
+            removeBanner();
+            TextView t = label(text, 17, 0xFFFFFFFF);
+            t.setTypeface(font(R.font.outfit_medium));
+            int h = Math.round(dp(22)), v = Math.round(dp(12));
+            t.setPadding(h, v, h, v);
+            GradientDrawable g = new GradientDrawable();
+            g.setColor(0xE61C1C20);
+            g.setCornerRadius(dp(26));
+            g.setStroke(Math.max(1, Math.round(dp(1))), 0x33FFFFFF);
+            t.setBackground(g);
+            try {
+                wm().addView(t, overlayParams(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, Math.round(dp(48))));
+                bannerView = t;
+                t.setAlpha(0f);
+                t.animate().alpha(1f).setDuration(200).start();
+                main.removeCallbacks(hideBanner);
+                main.postDelayed(hideBanner, millis);
+            } catch (RuntimeException failure) {
+                Log.w(TAG, "cannot show message: " + failure);
+            }
+        });
+    }
+
+    private void removeBanner() {
+        if (bannerView == null) return;
         try {
-            android.widget.Toast.makeText(this, "📱  " + text, android.widget.Toast.LENGTH_SHORT).show();
-        } catch (RuntimeException ignored) { }
+            wm().removeView(bannerView);
+        } catch (RuntimeException gone) { }
+        bannerView = null;
     }
 
     static boolean announceConnections(Context context) {
@@ -563,6 +602,48 @@ public class RemoteService extends AccessibilityService {
         return true;
     }
 
+    // ---- bedtime: every day at the same time the screen goes to sleep, after a warning on screen ----------------
+
+    /** Minutes after midnight, or -1 when off. */
+    static int bedtime(Context c) {
+        return c.getSharedPreferences("device", MODE_PRIVATE).getInt("bedtime", -1);
+    }
+
+    boolean setBedtime(int minutes) {
+        if (minutes < -1 || minutes >= 24 * 60) return false;
+        if (minutes >= 0 && android.os.Build.VERSION.SDK_INT < 28) return false;
+        getSharedPreferences("device", MODE_PRIVATE).edit().putInt("bedtime", minutes).apply();
+        bedtimeWarned = bedtimeDone = -1;
+        main.removeCallbacks(bedtimeCheck);
+        main.post(bedtimeCheck);
+        return true;
+    }
+
+    private int bedtimeWarned = -1, bedtimeDone = -1;   // the day of the year each last happened
+    private static final int BEDTIME_WARNING_MIN = 5;
+
+    private final Runnable bedtimeCheck = new Runnable() {
+        @Override public void run() {
+            if (instance != RemoteService.this) return;
+            int at = bedtime(RemoteService.this);
+            if (at >= 0) {
+                java.util.Calendar now = java.util.Calendar.getInstance();
+                int minute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
+                int day = now.get(java.util.Calendar.DAY_OF_YEAR);
+                int until = (at - minute + 24 * 60) % (24 * 60);
+                if (until == 0 && bedtimeDone != day) {
+                    bedtimeDone = day;
+                    key("sleep");
+                } else if (until > 0 && until <= BEDTIME_WARNING_MIN && bedtimeWarned != day) {
+                    bedtimeWarned = day;
+                    banner("🌙  Bedtime: the " + kind() + " goes to sleep in " + until
+                            + (until == 1 ? " minute" : " minutes"), 12_000);
+                }
+            }
+            main.postDelayed(this, 20_000L);
+        }
+    };
+
     /** Seconds until the sleep timer, 0 when none. */
     long sleepIn() {
         long at = sleepAt;
@@ -631,6 +712,11 @@ public class RemoteService extends AccessibilityService {
                 AccessibilityNodeInfo root = getRootInActiveWindow();
                 if (root != null && root.getPackageName() != null) pkg = root.getPackageName().toString();
             } catch (RuntimeException ignored) { }
+            if (phone.kid) s.put("kid", true);
+            // Family phones see the kids' app list to tick apps on and off; kids see what they may open.
+            if (!phone.guest()) s.put("kidApps", new org.json.JSONArray(pairing.kidApps()));
+            s.put("powerOff", !phone.limited() && DeviceTools.canPowerOff(this));
+            s.put("bedtime", bedtime(this));
             if (phone.guest()) {
                 s.put("guest", true).put("guestLeft", Math.max(0, (phone.guestUntil - System.currentTimeMillis()) / 1000));
             }
@@ -638,12 +724,12 @@ public class RemoteService extends AccessibilityService {
             if (!audio.isVolumeFixed()) {
                 int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
                 s.put("vol", audio.getStreamVolume(AudioManager.STREAM_MUSIC)).put("volMax", max)
-                        .put("volCap", phone.guest() ? (int) Math.floor(max * GUEST_VOLUME) : max)
+                        .put("volCap", phone.limited() ? (int) Math.floor(max * GUEST_VOLUME) : max)
                         .put("muted", audio.isStreamMute(AudioManager.STREAM_MUSIC));
             }
             s.put("focus", Focus.supported(this)).put("tools", DeviceTools.available(this));
             s.put("canSleep", android.os.Build.VERSION.SDK_INT >= 28).put("sleepIn", sleepIn());
-            s.put("preview", !phone.guest() && previewAllowed(this) && android.os.Build.VERSION.SDK_INT >= 30);
+            s.put("preview", !phone.limited() && previewAllowed(this) && android.os.Build.VERSION.SDK_INT >= 30);
             s.put("media", NowPlaying.allowed(this) ? NowPlaying.json(this, apps) : null);
             s.put("mediaAllowed", NowPlaying.allowed(this));
             java.net.Inet4Address ip = NetUtil.ipv4(this);

@@ -42,13 +42,18 @@ final class Apps {
 
     /** [{"pkg","label"}], TV apps (leanback) and ordinary ones, each once, by name. */
     String listJson() {
+        return listJson(null);
+    }
+
+    /** Only the packages in allowed, when it is not null (a kids phone). */
+    String listJson(java.util.Set<String> allowed) {
         PackageManager pm = context.getPackageManager();
         Map<String, String> found = new java.util.TreeMap<>();
         for (String category : new String[] {Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
             Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
             for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
                 String pkg = ri.activityInfo.packageName;
-                if (found.containsKey(pkg) || hidden(pkg)) continue;
+                if (found.containsKey(pkg) || hidden(pkg) || (allowed != null && !allowed.contains(pkg))) continue;
                 found.put(pkg, String.valueOf(ri.loadLabel(pm)));
             }
         }

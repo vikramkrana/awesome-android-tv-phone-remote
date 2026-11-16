@@ -38,6 +38,26 @@ final class DeviceTools {
         return c.getPackageManager().resolveService(new Intent().setComponent(cn), 0) != null;
     }
 
+    /** Whether power off is offered: the Siviton system menu is there. */
+    static boolean canPowerOff(Context c) {
+        return service(c, SYSTEM_MENU);
+    }
+
+    /**
+     * Switches the device off: opens the system's power menu and clicks its Power Off. (That menu powers off by
+     * itself after a 10 s count anyway, so a missed click ends the same way.) Never used for its other items.
+     */
+    static boolean powerOff(RemoteService s) {
+        if (!canPowerOff(s)) return false;
+        try {
+            s.startService(new Intent().setComponent(SYSTEM_MENU).putExtra("extra_system_ui", "poweroff"));
+            s.clickTextSoon("Power Off");
+            return true;
+        } catch (RuntimeException refused) {
+            return false;
+        }
+    }
+
     static boolean run(RemoteService s, String name) {
         boolean listed = false;
         JSONArray all = available(s);

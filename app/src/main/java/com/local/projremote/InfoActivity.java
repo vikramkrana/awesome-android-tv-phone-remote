@@ -422,6 +422,7 @@ public class InfoActivity extends Activity {
         long now = System.currentTimeMillis();
         String when = connected ? "Connected now"
                 : "Last used " + DateUtils.getRelativeTimeSpanString(p.lastSeen, now, DateUtils.MINUTE_IN_MILLIS);
+        if (p.kid) when = "Kids phone  ·  " + when;
         if (p.guest()) {
             long hours = Math.max(1, (p.guestUntil - now + 3_599_999L) / 3_600_000L);
             when = "Guest, " + hours + " h left  ·  " + when;
@@ -536,18 +537,22 @@ public class InfoActivity extends Activity {
 
     /** One phone: make it a guest or family, or remove it. */
     private void phoneMenu(Pairing.Phone p) {
-        String[] items = {p.guest() ? "Make family (no time limit, all rights)" : "Make guest (24 hours, fewer rights)",
-                "Remove " + p.name, "Cancel"};
+        // The two roles this phone does not have, then Remove.
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        java.util.List<Runnable> actions = new java.util.ArrayList<>();
+        Pairing pairing = Pairing.get(this);
+        if (p.guest() || p.kid) { labels.add("Make family (all rights)"); actions.add(() -> { pairing.setKid(p.id, false); pairing.setGuest(p.id, false); }); }
+        if (!p.guest()) { labels.add("Make guest (24 hours, fewer rights)"); actions.add(() -> { pairing.setKid(p.id, false); pairing.setGuest(p.id, true); }); }
+        if (!p.kid) { labels.add("Make kids phone (only apps you choose)"); actions.add(() -> pairing.setKid(p.id, true)); }
+        labels.add("Remove " + p.name); actions.add(() -> pairing.remove(p.id));
+        labels.add("Cancel"); actions.add(null);
+        String[] items = labels.toArray(new String[0]);
         new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(p.name)
                 .setItems(items, (d, which) -> {
-                    if (which == 0) {
-                        Pairing.get(this).setGuest(p.id, !p.guest());
-                    } else if (which == 1) {
-                        Pairing.get(this).remove(p.id);
-                    } else {
-                        return;
-                    }
+                    Runnable action = actions.get(which);
+                    if (action == null) return;
+                    action.run();
                     if (RemoteService.instance != null) RemoteService.instance.refreshQrCard();
                     render();
                 })

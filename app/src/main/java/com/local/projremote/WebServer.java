@@ -274,7 +274,7 @@ final class WebServer {
         }
         service.onPhoneSeen(phone);
         // Guests (owner's choice, see Pairing) steer and watch, but do not change the device or look at its screen.
-        if (phone.guest() && (GUEST_DENIED.contains(path) || (path.equals("/api/key") && body.trim().equals("sleep")))) {
+        if (phone.limited() && (GUEST_DENIED.contains(path) || (path.equals("/api/key") && body.trim().equals("sleep")))) {
             respond(out, 403, "text/plain", "not for guests");
             return;
         }
@@ -293,7 +293,8 @@ final class WebServer {
                 respond(out, 200, "text/plain", pairing.newHandoff(phone));
                 return;
             case "/api/apps":
-                respond(out, 200, "application/json", service.apps().listJson());
+                // A kids phone sees only the apps a parent chose.
+                respond(out, 200, "application/json", service.apps().listJson(phone.kid ? pairing.kidApps() : null));
                 return;
             case "/api/art": {
                 byte[] jpeg = NowPlaying.art(service);
@@ -322,7 +323,20 @@ final class WebServer {
         }
         boolean ok;
         switch (path) {
-            case "/api/launch": ok = service.apps().launch(body.trim()); break;
+            case "/api/launch":
+                ok = (!phone.kid || pairing.kidApps().contains(body.trim())) && service.apps().launch(body.trim());
+                break;
+            case "/api/kidapps": {
+                // A family phone ticks an app for kids phones on or off: "pkg" adds it, "-pkg" removes it.
+                String pkg = body.trim();
+                boolean off = pkg.startsWith("-");
+                if (off) pkg = pkg.substring(1);
+                ok = !pkg.isEmpty();
+                if (ok) pairing.setKidApp(pkg, !off);
+                break;
+            }
+            case "/api/bedtime": ok = service.setBedtime(parseInt(body)); break;
+            case "/api/poweroff": ok = DeviceTools.powerOff(service); break;
             case "/api/projector": ok = service.apps().openProjectorSettings(); break;
             case "/api/tool": ok = DeviceTools.run(service, body.trim()); break;
             case "/api/rename": ok = service.rename(body); break;
@@ -330,17 +344,21 @@ final class WebServer {
             case "/api/key": {
                 String k = body.trim();
                 // A guest's volume stops at the cap.
-                ok = phone.guest() && k.equals("volup") && service.atGuestVolumeCap() || service.key(k);
+                ok = phone.limited() && k.equals("volup") && service.atGuestVolumeCap() || service.key(k);
                 break;
             }
-            case "/api/link": ok = service.openLink(body); break;
+            case "/api/link": ok = !phone.kid && service.openLink(body); break;
             case "/api/sleeptimer": ok = service.setSleepTimer(parseInt(body)); break;
-            case "/api/volume": ok = service.setVolume(parseInt(body), phone.guest()); break;
+            case "/api/volume": ok = service.setVolume(parseInt(body), phone.limited()); break;
             case "/api/media": ok = NowPlaying.command(service, body.trim()); break;
             case "/api/seek": ok = NowPlaying.seek(service, parseInt(body) * 1000L); break;
             case "/api/text": ok = service.text(body); break;
             case "/api/enter": ok = service.enter(); break;
-            case "/api/search": ok = service.search(param(query, "app"), body.trim()); break;
+            // Kids: YouTube search only when a parent allowed a YouTube app.
+            case "/api/search":
+                ok = (!phone.kid || pairing.kidApps().stream().anyMatch(p -> p.contains("youtube")))
+                        && service.search(param(query, "app"), body.trim());
+                break;
             default:
                 respond(out, 404, "text/plain", "not found");
                 return;
@@ -531,7 +549,7 @@ final class WebServer {
 
     /** What a guest phone may not do: the device's settings, its name, sleep, the screen picture, the report. */
     private static final java.util.Set<String> GUEST_DENIED = new java.util.HashSet<>(java.util.Arrays.asList(
-            "/api/tool",
+            "/api/tool", "/api/kidapps", "/api/bedtime", "/api/poweroff",
             "/api/projector", "/api/rename", "/api/sleeptimer", "/api/screen", "/api/diag"));
 
     private static int parseInt(String s) {

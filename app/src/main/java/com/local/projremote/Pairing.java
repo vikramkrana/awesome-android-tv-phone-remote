@@ -59,6 +59,8 @@ final class Pairing {
         long handoffUntil;
         /** A guest: fewer rights (see WebServer.GUEST_DENIED), and gone after GUEST_MS. 0: not a guest. */
         long guestUntil;
+        /** A kids phone: a guest's limits without the time limit, and only the apps in kidApps(). */
+        boolean kid;
 
         Phone(String id, String name, String device, long pairedAt, long lastSeen) {
             this.id = id;
@@ -75,6 +77,11 @@ final class Pairing {
 
         boolean guest() {
             return guestUntil > 0;
+        }
+
+        /** Guest or kid: the owner's restrictions apply (WebServer.GUEST_DENIED, volume cap, no screen). */
+        boolean limited() {
+            return guestUntil > 0 || kid;
         }
 
         boolean expired() {
@@ -182,6 +189,26 @@ final class Pairing {
         if (phone == null) return;
         phone.guestUntil = guest ? System.currentTimeMillis() + GUEST_MS : 0;
         save();
+    }
+
+    /** Makes a paired phone a kids phone (or back to family). Not a guest any more either way. */
+    synchronized void setKid(String id, boolean kid) {
+        Phone phone = phones.get(id);
+        if (phone == null) return;
+        phone.kid = kid;
+        phone.guestUntil = 0;
+        save();
+    }
+
+    /** The apps kids phones may open (package names), chosen by a family phone. */
+    synchronized java.util.Set<String> kidApps() {
+        return new java.util.TreeSet<>(prefs.getStringSet("kidApps", java.util.Collections.emptySet()));
+    }
+
+    synchronized void setKidApp(String pkg, boolean allowed) {
+        java.util.Set<String> apps = kidApps();
+        if (allowed) apps.add(pkg); else apps.remove(pkg);
+        prefs.edit().putStringSet("kidApps", apps).apply();
     }
 
     /** Removes guests whose time is up. True when one was removed. */
@@ -404,6 +431,7 @@ final class Pairing {
                 phone.handoff = p.optString("handoff", "");
                 phone.handoffUntil = p.optLong("handoffUntil");
                 phone.guestUntil = p.optLong("guestUntil");
+                phone.kid = p.optBoolean("kid");
                 phones.put(id, phone);
                 for (String key : phone.keys) register(key, phone);
             }
@@ -420,7 +448,7 @@ final class Pairing {
                         .put("paired", p.pairedAt).put("seen", p.lastSeen)
                         .put("keys", new org.json.JSONArray(p.keys))
                         .put("handoff", p.handoff).put("handoffUntil", p.handoffUntil)
-                        .put("guestUntil", p.guestUntil));
+                        .put("guestUntil", p.guestUntil).put("kid", p.kid));
             }
             prefs.edit().putString("phones", all.toString()).apply();
             lastSaved = System.currentTimeMillis();
