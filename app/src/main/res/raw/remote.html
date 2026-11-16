@@ -523,11 +523,11 @@
       <div id="siriHow" class="hidden" style="padding:6px 4px 4px;font-size:13.5px;line-height:1.55;color:#D9D6E0">
         <button class="btn primary press" id="siriAdd" type="button" style="width:100%;margin:6px 0 10px">Add to Siri</button>
         <ol style="margin:0 0 6px;padding-left:20px">
-          <li><b>Add to Siri</b> copies this phone's address and opens Shortcuts.</li>
-          <li>Tap the address box there, <b>Paste</b>, then <b>Add Shortcut</b>.</li>
+          <li><b>Add to Siri</b> copies this phone's address and opens the shortcut. If Safari asks, tap <b>Download</b>, then open it (↓ in the address bar).</li>
+          <li>In Shortcuts tap <b>Set Up Shortcut</b>, <b>Paste</b> into the address box, then <b>Add Shortcut</b>.</li>
           <li>Say <b>"Hey Siri, Projector"</b>, then e.g. <i>open YouTube</i>.</li>
         </ol>
-        <p style="margin:8px 0 6px;color:var(--dim)">Shortcuts didn't open? <a href="/Projector.shortcut" style="color:var(--text)">Get the shortcut</a>. The address (keep it private: it controls the {{kind}} like this phone):</p>
+        <p style="margin:8px 0 6px;color:var(--dim)">Nothing opened? <a href="/Projector.shortcut" target="_blank" style="color:var(--text)">Get the shortcut</a>. The address (keep it private: it controls the {{kind}} like this phone):</p>
         <div class="row"><input class="field" id="siriUrl" readonly style="font-size:12px;flex:1 1 auto;min-width:0;width:auto;height:46px;padding:0 12px"><button class="btn press" id="siriCopy" type="button" style="flex:0 0 auto;width:auto;height:46px;padding:0 18px">Copy</button></div>
         <p style="margin:8px 0 0;color:var(--dim)">One-word shortcuts work too: put e.g. <b>pause</b> after <code>say=</code> in Get Contents of URL. Works on the home Wi-Fi only.</p>
         <button class="linkbtn" id="siriOff" type="button" style="margin-top:10px;color:#FF8A80">Turn off this key</button>
@@ -1571,8 +1571,12 @@
   $("siriAdd").onclick = () => {
     const ok = copyAddress();
     toast(ok ? "Address copied. Paste it in Shortcuts" : "Copy the address below, then add the shortcut");
-    const file = location.origin + "/Projector.shortcut";
-    setTimeout(() => { location.href = "shortcuts://import-shortcut?url=" + encodeURIComponent(file) + "&name=Projector"; }, 400);
+    // The file itself, in Safari (a new tab, which also works from the Home Screen app): iOS hands a signed
+    // .shortcut to Shortcuts. (shortcuts://import-shortcut only takes iCloud links: "The shortcut URL provided was
+    // invalid".) Opened inside the tap, or Safari blocks it.
+    const a = document.createElement("a");
+    a.href = location.origin + "/Projector.shortcut"; a.target = "_blank"; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
   };
   $("siriCopy").onclick = async () => {
     try { await navigator.clipboard.writeText($("siriUrl").value); toast("Copied"); }

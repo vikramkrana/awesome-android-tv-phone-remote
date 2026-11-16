@@ -227,8 +227,8 @@ tools are left out on purpose.
 *focus*, *turn off the screen*, *power off*. The answer shows below the box.
 
 **Siri (iPhone):** Settings → **Set up "Hey Siri, Projector"** → **Add to Siri**. The remote copies this phone's
-private address and opens Shortcuts on the *Projector* shortcut: tap its address box, **Paste**, **Add
-Shortcut**. Then "Hey Siri, Projector", and say the command; Siri reads the answer. If Shortcuts does not open,
+private address and opens the *Projector* shortcut in Safari (tap **Download** if asked, then open it). In
+Shortcuts: **Set Up Shortcut**, **Paste** the address, **Add Shortcut**. Then "Hey Siri, Projector", and say the command; Siri reads the answer. If Shortcuts does not open,
 **Get the shortcut** downloads it, and the address is shown with a Copy button. **Turn off this key** stops every
 shortcut that uses it. Home Wi-Fi only.
 
