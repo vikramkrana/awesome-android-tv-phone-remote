@@ -123,7 +123,7 @@ public class MainActivity extends Activity implements Finder.Listener {
         String lastId = prefs.getString("id", null), lastName = prefs.getString("name", null);
         // The device used last, at whatever address it has now.
         if ((lastId != null && lastId.equals(d.id)) || (lastId == null && lastName != null && lastName.equals(d.name))) {
-            open(d.url);
+            open(d);
             return;
         }
         if (overlay.getVisibility() == View.VISIBLE && list.getChildCount() > 0) drawList();
@@ -133,7 +133,7 @@ public class MainActivity extends Activity implements Finder.Listener {
     /** First run (or the last device is gone): one device opens straight away, several are listed. */
     private void pickOrList() {
         if (loaded) return;
-        if (found.size() == 1 && prefs.getString("url", null) == null) open(found.get(0).url);
+        if (found.size() == 1 && prefs.getString("url", null) == null) open(found.get(0));
         else if (!found.isEmpty()) showDevices();
     }
 
@@ -162,11 +162,18 @@ public class MainActivity extends Activity implements Finder.Listener {
             row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
             row.setPadding(dp(18), dp(14), dp(18), dp(14));
             row.setBackground(round(CARD, 16));
-            row.setOnClickListener(v -> open(d.url));
+            row.setOnClickListener(v -> open(d));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.topMargin = dp(10);
             list.addView(row, lp);
         }
+    }
+
+    private void open(Finder.Device d) {
+        SharedPreferences.Editor e = prefs.edit().putString("name", d.name);
+        if (d.id != null) e.putString("id", d.id);
+        e.apply();
+        open(d.url);
     }
 
     private void open(String url) {
@@ -286,6 +293,19 @@ public class MainActivity extends Activity implements Finder.Listener {
                     startActivity(new Intent(Intent.ACTION_VIEW, u));
                 } catch (ActivityNotFoundException ignored) { }
                 return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                // Up. (A device with an older remote page never calls here(): remember it from its address.)
+                if (url == null || !url.startsWith("http")) return;
+                Uri u = Uri.parse(url);
+                if (prefs.getString("url", null) == null || overlay.getVisibility() == View.VISIBLE) {
+                    String origin = u.getScheme() + "://" + u.getAuthority() + "/";
+                    if (!origin.equals(prefs.getString("url", null))) prefs.edit().putString("url", origin).apply();
+                }
+                hideOverlay();
+                finder.stop();
             }
 
             @Override
