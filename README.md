@@ -59,7 +59,7 @@ was specific to it has been replaced by detection or by a setting, see
 2. **Open Phone Remote** on the device and choose **Turn on**, read what it allows, then switch **Phone Remote** on.
    (With ADB you can do this from the computer instead, see the [guide](docs/GUIDE.md#2-switch-the-remote-on).)
 3. **Press Home.** Scan the QR card with the phone's camera, type the PIN from the big screen.
-4. On iPhone: **Share → Add to Home Screen** while "You're connected" is showing. On Android: Chrome **⋮ → Add to Home screen → Create shortcut** ("Install" is not offered: that needs HTTPS).
+4. On iPhone: **Share → Add to Home Screen** while "You're connected" is showing. On Android: Chrome **⋮ → Add to Home screen → Create shortcut** ("Install" needs HTTPS). The first tap goes full screen, hiding the address bar.
 
 The full walk-through, with a picture of every screen: **[docs/GUIDE.md](docs/GUIDE.md)**.
 

@@ -514,6 +514,19 @@
     document.documentElement.classList.add("standalone");
     fit(); addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 300));
   }
+  // Android Chrome (a shortcut or a tab): a page over plain HTTP cannot be installed, so it keeps the address bar.
+  // Full screen hides it. Browsers allow that only from a tap, so the first tap after opening (or coming back to)
+  // the remote does it. Swiping back out of full screen is respected until the remote is left and reopened.
+  if (/Android/.test(navigator.userAgent) && !standalone && document.documentElement.requestFullscreen) {
+    let armed = true;
+    const enter = () => {
+      if (!armed || document.fullscreenElement) return;
+      armed = false;
+      document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    };
+    addEventListener("pointerup", enter, true);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) armed = true; });
+  }
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
