@@ -1219,6 +1219,10 @@
   if (hash) history.replaceState(null, "", location.pathname);
   const ua = navigator.userAgent;
   const iosSafari = isIOS && !standalone;
+  // Android Chrome: a page over plain HTTP cannot be installed, only added as a shortcut (it keeps the pairing).
+  const androidTab = /Android/.test(navigator.userAgent) && !standalone;
+  const ANDROID_STEPS = "Keep it one tap away: tap <b>⋮</b> at the top right, then <b>Add to Home screen</b>, then "
+    + "<b>Create shortcut</b>. (<i>Install</i> is not possible for a page from a home device.) The icon opens straight into the remote.";
   $("phoneName").value = /iPhone/.test(ua) ? "iPhone" : isIOS ? "iPad" : /Android/.test(ua) ? "Android phone" : "Phone";
   // This browser's own random id: pairing again from here replaces its old entry instead of adding a new one.
   let device = store.get("device", null);
@@ -1256,6 +1260,8 @@
       if (iosSafari) {
         $("doneText").innerHTML = "Keep it one tap away: tap <b>Share</b>, then <b>Add to Home Screen</b> now. The icon opens straight into the remote, no PIN.";
         await prepareHomeScreen();
+      } else if (androidTab) {
+        $("doneText").innerHTML = ANDROID_STEPS;
       } else {
         $("doneText").textContent = "This phone is now a remote for the {{kind}}. Opening this page again goes straight to the remote.";
       }
@@ -1311,8 +1317,9 @@
   $("boxes").addEventListener("click", () => $("pin").focus());
   $("pairBtn").onclick = () => { if ($("pin").value.length === 6) pair($("pin").value); else toast("Enter the 6 digits shown on the {{kind}}"); };
   $("doneBtn").onclick = leaveDone;
-  if (iosSafari) $("homeBtn").classList.remove("hidden");
+  if (iosSafari || androidTab) $("homeBtn").classList.remove("hidden");
   $("homeBtn").onclick = async () => {
+    if (androidTab) { $("doneText").innerHTML = ANDROID_STEPS; show("done"); return; }
     $("doneText").innerHTML = "Now tap <b>Share</b>, then <b>Add to Home Screen</b>. The icon opens straight into the remote, no PIN.";
     await prepareHomeScreen(); show("done");
   };
