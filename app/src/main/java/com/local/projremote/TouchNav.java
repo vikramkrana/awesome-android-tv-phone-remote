@@ -38,6 +38,8 @@ final class TouchNav {
     private View ring;
     /** Keys passed on to the app at ACTION_DOWN, so their ACTION_UP goes the same way. */
     private final Set<Integer> passed = new HashSet<>();
+    /** The part of the screen not under the app's fixed bars (from the last look at the screen). */
+    private int clearTop, clearBottom = Integer.MAX_VALUE, clearRight = Integer.MAX_VALUE;
 
     TouchNav(AccessibilityService service) {
         this.service = service;
@@ -80,6 +82,14 @@ final class TouchNav {
 
     /** One step that way. False when the screen has nothing to step to (the key then goes to the app). */
     boolean move(int direction) {
+        long t0 = android.os.SystemClock.uptimeMillis();
+        try {
+            return moveNow(direction);
+        } finally {
+        }
+    }
+
+    private boolean moveNow(int direction) {
         List<AccessibilityNodeInfo> all = targets();
         if (all.isEmpty()) {
             hide();
@@ -92,53 +102,184 @@ final class TouchNav {
         }
         Rect from = new Rect();
         current.getBoundsInScreen(from);
-        AccessibilityNodeInfo next = nearest(all, from, direction);
         boolean vertical = direction == View.FOCUS_UP || direction == View.FOCUS_DOWN;
-        // Up/down inside a scrolling page: the page's next item, not the fixed bar over it. Scroll first; the bars
-        // are reached once the page can go no further.
-        AccessibilityNodeInfo page = vertical ? scroller(current, false) : null;
-        if (next != null && (page == null || inside(next, page))) {
-            select(next);
-            return true;
-        }
-        if (!scroll(current, direction)) {
+        boolean onBar = isBar(from);
+        // The page's items wholly in view (not the fixed bars at the top and bottom of the screen).
+        List<AccessibilityNodeInfo> page = new ArrayList<>();
+        for (AccessibilityNodeInfo n : all) if (!isBar(n) && clear(n)) page.add(n);
+        if (onBar) {
+            // From a bar: along the bar, or into the page.
+            AccessibilityNodeInfo next = vertical ? nearest(page, from, direction) : nearest(sameRow(all, from), from, direction);
+            if (next == null) next = nearest(all, from, direction);
             if (next != null) select(next);
             return true;
         }
-        main.postDelayed(() -> {
+        AccessibilityNodeInfo next = vertical ? nearest(page, from, direction)
+                : nearest(sameRow(page, from), from, direction);
+        if (next != null) {
+            select(next);
+            return true;
+        }
+        // Nothing further that way in view: swipe the page (up/down) or this row (left/right) like a finger, then
+        // step onto what came into view. When nothing moved (the end), up/down go on to the bar.
+        DisplayMetrics m = service.getResources().getDisplayMetrics();
+        Rect box = vertical ? new Rect(0, clearTop, m.widthPixels, clearBottom)
+                : new Rect(0, from.top, m.widthPixels, from.bottom);
+        String before = signature();
+        hide();
+        Runnable land = () -> main.postDelayed(() -> {
             List<AccessibilityNodeInfo> now = targets();
-            List<AccessibilityNodeInfo> within = new ArrayList<>();
-            for (AccessibilityNodeInfo n : now) if (page == null || inside(n, page)) within.add(n);
-            AccessibilityNodeInfo after = nearest(within, from, direction);
-            if (after == null) after = closest(within, from);
+            List<AccessibilityNodeInfo> inView = new ArrayList<>();
+            for (AccessibilityNodeInfo n : now) if (!isBar(n) && clear(n)) inView.add(n);
+            if (signature().equals(before)) {
+                AccessibilityNodeInfo end = vertical ? nearest(now, from, direction) : null;
+                select(end != null ? end : nearestOrSelf(now, from));
+                return;
+            }
+            AccessibilityNodeInfo after = vertical ? nearest(inView, from, direction)
+                    : nearest(sameRow(inView, from), from, direction);
+            if (after == null) after = closest(vertical ? inView : sameRow(inView, from), from);
+            if (after == null) after = closest(inView, from);
             if (after != null) select(after);
-            else hide();
-        }, 400);
+        }, 300);
+        if (scrollList(from, direction)) land.run();
+        else swipe(box, from, direction, land);
         return true;
     }
 
-    /** The nearest scrolling ancestor: a wide row (horizontal) or a tall page. */
-    private static AccessibilityNodeInfo scroller(AccessibilityNodeInfo from, boolean horizontal) {
+    /**
+     * Scrolls the list on screen that holds this spot: for left/right the widest-shaped list around it (a row),
+     * for up/down the tallest (the page). Found by position, as some apps do not report the item's parents.
+     */
+    private boolean scrollList(Rect at, int direction) {
+        AccessibilityNodeInfo root = service.getRootInActiveWindow();
+        if (root == null) return false;
+        boolean vertical = direction == View.FOCUS_UP || direction == View.FOCUS_DOWN;
+        List<AccessibilityNodeInfo> lists = new ArrayList<>();
+        scrollables(root, lists, 0);
+        AccessibilityNodeInfo best = null;
+        long bestArea = vertical ? 0 : Long.MAX_VALUE;
         Rect r = new Rect();
-        AccessibilityNodeInfo node = from == null ? null : from.getParent();
-        for (int i = 0; node != null && i < 20; i++) {
-            if (node.isScrollable()) {
-                node.getBoundsInScreen(r);
-                if (horizontal == (r.width() > r.height() * 2)) return node;
+        for (AccessibilityNodeInfo n : lists) {
+            n.getBoundsInScreen(r);
+            if (!r.contains(at.centerX(), at.centerY())) continue;
+            boolean wide = r.width() > r.height() * 2;
+            if (vertical == wide) continue;
+            long area = (long) r.width() * r.height();
+            if (vertical ? area > bestArea : area < bestArea) {
+                bestArea = area;
+                best = n;
             }
-            node = node.getParent();
         }
-        return null;
+        if (best == null) return false;
+        AccessibilityNodeInfo.AccessibilityAction specific;
+        int general;
+        switch (direction) {
+            case View.FOCUS_UP: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP;
+                general = AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD; break;
+            case View.FOCUS_DOWN: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN;
+                general = AccessibilityNodeInfo.ACTION_SCROLL_FORWARD; break;
+            case View.FOCUS_LEFT: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_LEFT;
+                general = AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD; break;
+            default: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_RIGHT;
+                general = AccessibilityNodeInfo.ACTION_SCROLL_FORWARD; break;
+        }
+        boolean done = best.getActionList().contains(specific) && best.performAction(specific.getId());
+        if (!done) done = best.performAction(general);
+        return done;
     }
 
-    private static boolean inside(AccessibilityNodeInfo node, AccessibilityNodeInfo ancestor) {
-        AccessibilityNodeInfo p = node.getParent();
-        for (int i = 0; p != null && i < 25; i++) {
-            if (p.equals(ancestor)) return true;
-            p = p.getParent();
-        }
-        return false;
+    private static void scrollables(AccessibilityNodeInfo node, List<AccessibilityNodeInfo> out, int depth) {
+        if (node == null || depth > 40) return;
+        if (node.isScrollable() && node.isVisibleToUser()) out.add(node);
+        for (int i = 0; i < node.getChildCount(); i++) scrollables(node.getChild(i), out, depth + 1);
     }
+
+    /** The app's fixed bars: items wholly in the top or bottom strip of the screen (header, tabs). */
+    private boolean isBar(Rect r) {
+        int h = service.getResources().getDisplayMetrics().heightPixels;
+        return r.bottom <= h * 12 / 100 || r.top >= h * 86 / 100;
+    }
+
+    private boolean isBar(AccessibilityNodeInfo n) {
+        Rect r = new Rect();
+        n.getBoundsInScreen(r);
+        return isBar(r);
+    }
+
+    /** Items level with this one (their middles within its height): the same row. */
+    private static List<AccessibilityNodeInfo> sameRow(List<AccessibilityNodeInfo> all, Rect a) {
+        List<AccessibilityNodeInfo> out = new ArrayList<>();
+        Rect b = new Rect();
+        for (AccessibilityNodeInfo n : all) {
+            n.getBoundsInScreen(b);
+            if (b.centerY() >= a.top && b.centerY() <= a.bottom) out.add(n);
+        }
+        return out;
+    }
+
+    private AccessibilityNodeInfo nearestOrSelf(List<AccessibilityNodeInfo> all, Rect a) {
+        Rect b = new Rect();
+        for (AccessibilityNodeInfo n : all) {
+            n.getBoundsInScreen(b);
+            if (b.equals(a)) return n;
+        }
+        return closest(all, a);
+    }
+
+    /** Wholly in view: not under a fixed bar, not cut off at the screen's edge. */
+    private boolean clear(AccessibilityNodeInfo n) {
+        Rect r = new Rect();
+        n.getBoundsInScreen(r);
+        return r.top >= clearTop - 4 && r.bottom <= clearBottom + 4 && r.left >= -4 && r.right <= clearRight + 4;
+    }
+
+    /** Where the items on screen are, to tell whether a swipe moved anything. */
+    private String signature() {
+        StringBuilder b = new StringBuilder();
+        Rect r = new Rect();
+        for (AccessibilityNodeInfo n : targets()) {
+            n.getBoundsInScreen(r);
+            b.append(r.toShortString());
+        }
+        return b.toString();
+    }
+
+    /** A slow finger swipe (no fling) of about half the area, from the item's line, so the content moves one step. */
+    private void swipe(Rect box, Rect item, int direction, Runnable done) {
+        float x1, y1, x2, y2;
+        boolean vertical = direction == View.FOCUS_UP || direction == View.FOCUS_DOWN;
+        if (vertical) {
+            float dist = box.height() * 0.45f;
+            x1 = x2 = box.centerX();
+            float mid = box.centerY();
+            boolean down = direction == View.FOCUS_DOWN;
+            y1 = down ? mid + dist / 2 : mid - dist / 2;
+            y2 = down ? mid - dist / 2 : mid + dist / 2;
+        } else {
+            float dist = box.width() * 0.5f;
+            y1 = y2 = Math.max(box.top + 4, Math.min(box.bottom - 4, item.centerY()));
+            float mid = box.centerX();
+            boolean right = direction == View.FOCUS_RIGHT;
+            x1 = right ? mid + dist / 2 : mid - dist / 2;
+            x2 = right ? mid - dist / 2 : mid + dist / 2;
+        }
+        Path p = new Path();
+        p.moveTo(x1, y1);
+        p.lineTo(x2, y2);
+        // Slow enough that the list stops where the finger stops (no fling).
+        GestureDescription.StrokeDescription move = new GestureDescription.StrokeDescription(p, 0, 700);
+        boolean sent = service.dispatchGesture(new GestureDescription.Builder().addStroke(move).build(),
+                new AccessibilityService.GestureResultCallback() {
+                    @Override public void onCompleted(GestureDescription g) { done.run(); }
+                    @Override public void onCancelled(GestureDescription g) {
+                        done.run();
+                    }
+                }, null);
+        if (!sent) done.run();
+    }
+
+
 
     /** Taps the highlighted item; with none, the middle of the screen. */
     boolean ok() {
@@ -183,28 +324,26 @@ final class TouchNav {
         DisplayMetrics m = service.getResources().getDisplayMetrics();
         long screen = (long) m.widthPixels * m.heightPixels;
         collect(root, out, screen, 0);
-        // Items of a scrolling page that lie under a fixed bar (tabs at the bottom, the header) are hidden there.
+        // The page's items that lie mostly under a fixed bar (the header, the tabs) cannot be seen there.
+        int h = m.heightPixels;
+        clearTop = 0;
+        clearBottom = h;
         List<Rect> bars = new ArrayList<>();
-        List<AccessibilityNodeInfo> paged = new ArrayList<>();
         for (AccessibilityNodeInfo n : out) {
-            if (scroller(n, false) == null && scroller(n, true) == null) {
-                Rect r = new Rect();
-                n.getBoundsInScreen(r);
-                bars.add(r);
-            } else {
-                paged.add(n);
-            }
-        }
-        Rect r = new Rect();
-        for (AccessibilityNodeInfo n : paged) {
+            Rect r = new Rect();
             n.getBoundsInScreen(r);
-            for (Rect bar : bars) {
-                Rect overlap = new Rect();
-                if (overlap.setIntersect(r, bar) && overlap.height() * 2 > r.height()) {
-                    out.remove(n);
-                    break;
-                }
-            }
+            if (!isBar(r)) continue;
+            bars.add(r);
+            if (r.centerY() < h / 2) clearTop = Math.max(clearTop, r.bottom);
+            else clearBottom = Math.min(clearBottom, r.top);
+        }
+        clearRight = m.widthPixels;
+        Rect r = new Rect();
+        for (java.util.Iterator<AccessibilityNodeInfo> it = out.iterator(); it.hasNext(); ) {
+            it.next().getBoundsInScreen(r);
+            if (isBar(r)) continue;
+            int hidden = Math.max(0, Math.min(r.bottom, h) - clearBottom) + Math.max(0, clearTop - r.top);
+            if (hidden * 2 > r.height()) it.remove();
         }
         return out;
     }
@@ -295,35 +434,6 @@ final class TouchNav {
         return best;
     }
 
-    private static boolean scroll(AccessibilityNodeInfo from, int direction) {
-        AccessibilityNodeInfo.AccessibilityAction specific;
-        int general;
-        boolean horizontal = direction == View.FOCUS_LEFT || direction == View.FOCUS_RIGHT;
-        switch (direction) {
-            case View.FOCUS_UP: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP;
-                general = AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD; break;
-            case View.FOCUS_DOWN: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN;
-                general = AccessibilityNodeInfo.ACTION_SCROLL_FORWARD; break;
-            case View.FOCUS_LEFT: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_LEFT;
-                general = AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD; break;
-            default: specific = AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_RIGHT;
-                general = AccessibilityNodeInfo.ACTION_SCROLL_FORWARD; break;
-        }
-        // The nearest list that scrolls that way. A list that only says forward/backward is used when its shape
-        // fits: a wide row for left/right, a tall page for up/down.
-        Rect r = new Rect();
-        AccessibilityNodeInfo node = from;
-        for (int i = 0; node != null && i < 15; i++) {
-            if (node.isScrollable()) {
-                if (node.getActionList().contains(specific)) return node.performAction(specific.getId());
-                node.getBoundsInScreen(r);
-                boolean wide = r.width() > r.height() * 2;
-                if (horizontal == wide && node.performAction(general)) return true;
-            }
-            node = node.getParent();
-        }
-        return false;
-    }
 
     // ---- the ring and the tap --------------------------------------------------------------------------------------
 

@@ -877,6 +877,7 @@ public class RemoteService extends AccessibilityService {
      */
     private volatile boolean pointer;
     private volatile long pointerReadAt;
+    private volatile boolean pointerReading;
 
     private boolean keysAsFocus() {
         return android.os.Build.VERSION.SDK_INT < 33 || pointerMode();
@@ -886,17 +887,24 @@ public class RemoteService extends AccessibilityService {
         String prop = getString(R.string.mouse_mode_property);
         if (prop.isEmpty()) return false;
         long now = SystemClock.uptimeMillis();
-        if (now - pointerReadAt < 1000) return pointer;
-        pointerReadAt = now;
-        try {
-            Process p = new ProcessBuilder("getprop", prop).redirectErrorStream(true).start();
-            try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()))) {
-                String line = r.readLine();
-                pointer = line != null && line.trim().equals("on");
-            }
-            p.waitFor();
-        } catch (Exception unreadable) {
-            pointer = false;
+        // Read in the background (it starts a process): the remote's keys must never wait for it.
+        if (now - pointerReadAt >= 1000 && !pointerReading) {
+            pointerReadAt = now;
+            pointerReading = true;
+            new Thread(() -> {
+                try {
+                    Process p = new ProcessBuilder("getprop", prop).redirectErrorStream(true).start();
+                    try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()))) {
+                        String line = r.readLine();
+                        pointer = line != null && line.trim().equals("on");
+                    }
+                    p.waitFor();
+                } catch (Exception unreadable) {
+                    pointer = false;
+                } finally {
+                    pointerReading = false;
+                }
+            }, "mouse-mode").start();
         }
         return pointer;
     }
