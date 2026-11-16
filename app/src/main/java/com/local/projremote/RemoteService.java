@@ -716,7 +716,7 @@ public class RemoteService extends AccessibilityService {
             // Family phones see the kids' app list to tick apps on and off; kids see what they may open.
             if (!phone.guest()) s.put("kidApps", new org.json.JSONArray(pairing.kidApps()));
             s.put("powerOff", !phone.limited() && DeviceTools.canPowerOff(this));
-            s.put("bedtime", bedtime(this));
+            s.put("bedtime", bedtime(this)).put("photos", Photos.isShowing());
             if (phone.guest()) {
                 s.put("guest", true).put("guestLeft", Math.max(0, (phone.guestUntil - System.currentTimeMillis()) / 1000));
             }

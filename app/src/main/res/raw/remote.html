@@ -258,6 +258,7 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></symbol>
     <symbol id="i-magic" viewBox="0 0 24 24"><path d="M4 20 15 9"/><path d="M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M19 3v2M18 4h2"/></symbol>
 <symbol id="i-keystone" viewBox="0 0 24 24"><path d="M6 5h12l3 14H3z"/></symbol>
 <symbol id="i-zoom" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/></symbol>
@@ -432,6 +433,20 @@
       <div class="label">Volume</div>
       <div class="card volrow"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-mute"/></svg><input type="range" class="slim" id="volRange" min="0" max="15" value="0" aria-label="Volume"><b id="volNum">0</b></div>
     </div>
+
+    <div class="label">Photos</div>
+    <div class="card">
+      <div class="list">
+        <button class="item press" id="photoBtn"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-photo"/></svg><div class="grow">Show photos<small id="photoHint">Pick from this phone: they play full screen as a slideshow</small></div><svg width="16" height="16" fill="none" stroke="rgba(236,232,246,.4)" stroke-width="2" stroke-linecap="round"><use href="#i-chev"/></svg></button>
+      </div>
+      <div class="seg hidden" id="photoCtl" style="margin-top:10px">
+        <button aria-label="Previous photo" data-photo="prev"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-left"/></svg></button>
+        <button aria-label="Pause or play" id="photoPlay"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linejoin="round"><use href="#i-play"/></svg></button>
+        <button aria-label="Next photo" data-photo="next"><svg width="22" height="22" fill="none" stroke="#F4F2F8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-right"/></svg></button>
+        <button aria-label="Close slideshow" data-photo="stop" style="color:#FF8A80;font-weight:600;font-size:14px">Close</button>
+      </div>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" multiple hidden>
 
     <div class="label">Send a link</div>
     <form class="row" id="linkForm"><input class="field" id="linkInput" type="url" inputmode="url" autocomplete="off" placeholder="Paste a YouTube or web link"><button class="key round press" aria-label="Open on the {{kind}}" style="flex-shrink:0;width:54px;height:54px"><svg width="20" height="20" fill="none" stroke="#F4F2F8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><use href="#i-send"/></svg></button></form>
@@ -750,26 +765,26 @@
   function deadline(ms) {
     const c = new AbortController(); setTimeout(() => c.abort(), ms || 5000); return c.signal;
   }
-  async function signedFetch(path, body) {
+  async function signedFetch(path, body, ms) {
     const k = keys();
     if (!epoch) epoch = await fetch("/api/hello", { method: "POST", signal: deadline() }).then((r) => r.text());
     const ctr = nextCtr();
     const sig = hmac(k.key, utf8(epoch + "\n" + ctr + "\n" + path + "\n" + body));
-    return fetch(path, { method: "POST", headers: { "X-Key": k.id, "X-Ctr": ctr, "X-Sig": sig }, body, signal: deadline() });
+    return fetch(path, { method: "POST", headers: { "X-Key": k.id, "X-Ctr": ctr, "X-Sig": sig }, body, signal: deadline(ms) });
   }
-  async function api(path, body) {
+  async function api(path, body, ms) {
     if (!token) throw new Error("unpaired");
     body = body || "";
     let res;
     try {
-      res = await signedFetch(path, body);
+      res = await signedFetch(path, body, ms);
       if (res.status === 401) {
         // The remote restarted (new epoch) or this phone's clock went back: catch up and try once more.
         const e = res.headers.get("X-Epoch"), c = Number(res.headers.get("X-Ctr")) || 0;
         if ((e && e !== epoch) || c > lastCtr) {
           if (e) epoch = e;
           if (c > lastCtr) lastCtr = c;
-          res = await signedFetch(path, body);
+          res = await signedFetch(path, body, ms);
         }
       }
     } catch (e) { setOnline(false); throw e; }
@@ -1006,6 +1021,7 @@
       v.max = state.volMax; v.value = state.vol; $("volNum").textContent = state.muted ? "Mute" : state.vol; setFill(v);
     }
     $("timerWrap").classList.toggle("hidden", !state.canSleep || !!state.guest || !!state.kid);
+    $("photoCtl").classList.toggle("hidden", !state.photos);
     $("bedWrap").classList.toggle("hidden", !state.canSleep || !!state.guest || !!state.kid);
     $("bedRow").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", Number(c.dataset.bed) === (state.bedtime ?? -1)));
     const left = state.sleepIn || 0;
@@ -1055,6 +1071,43 @@
       else toast("No app on the {{kind}} opens that link");
     } catch (e) {}
   }
+  // ---- photos: sized for the screen here, then sent one by one (Photos.java shows them) -----------------------
+  function shrink(file) {
+    return new Promise((done, fail) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1920 / img.naturalWidth, 1080 / img.naturalHeight);
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        done(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("unreadable")); };
+      img.src = url;
+    });
+  }
+  let photoPlaying = true;
+  $("photoBtn").onclick = () => $("photoInput").click();
+  $("photoInput").onchange = async () => {
+    const files = [...$("photoInput").files].slice(0, 50); $("photoInput").value = "";
+    if (!files.length) return;
+    let sent = 0;
+    for (const f of files) {
+      $("photoHint").textContent = "Sending " + (sent + 1) + " of " + files.length + "…";
+      try {
+        const b64 = await shrink(f);
+        const r = await api("/api/photo?i=" + sent + "&n=" + files.length, b64, 30000);
+        if (!r.ok) throw new Error("refused");
+        sent++;
+      } catch (e) { toast("Skipped a photo this phone can't read"); }
+    }
+    $("photoHint").textContent = "Pick from this phone: they play full screen as a slideshow";
+    if (sent) { photoPlaying = true; toast(sent === 1 ? "Showing on the {{kind}}" : sent + " photos on the {{kind}}"); refresh().catch(() => {}); }
+  };
+  document.querySelectorAll("[data-photo]").forEach((b) => b.addEventListener("click", () =>
+    api("/api/photos", b.dataset.photo).then(() => refresh()).catch(() => {})));
+  $("photoPlay").onclick = () => { photoPlaying = !photoPlaying; api("/api/photos", photoPlaying ? "play" : "pause").catch(() => {}); };
   document.querySelectorAll("[data-bed]").forEach((b) => b.addEventListener("click", async () => {
     try {
       const r = await api("/api/bedtime", b.dataset.bed);

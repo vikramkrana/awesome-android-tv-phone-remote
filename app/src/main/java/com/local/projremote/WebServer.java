@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 final class WebServer {
     private static final String TAG = "ProjRemote";
     private static final int MAX_BODY = 4096;
+    private static final int MAX_PHOTO = 3_000_000;
     private static final long PIN_REQUEST_GAP_MS = 10_000L;
     private static final String COOKIE = "pr";
 
@@ -131,7 +132,9 @@ final class WebServer {
             }
             int length = 0;
             try { length = Integer.parseInt(headers.getOrDefault("content-length", "0")); } catch (NumberFormatException ignored) { }
-            if (length < 0 || length > MAX_BODY) {
+            // Photos (Photos.java) are the one large request: a screen-sized JPEG as base64.
+            int max = target.startsWith("/api/photo?") ? MAX_PHOTO : MAX_BODY;
+            if (length < 0 || length > max) {
                 respond(c.getOutputStream(), 413, "text/plain", "too large");
                 return;
             }
@@ -336,6 +339,8 @@ final class WebServer {
                 break;
             }
             case "/api/bedtime": ok = service.setBedtime(parseInt(body)); break;
+            case "/api/photo": ok = Photos.add(service, parseInt(param(query, "i")), parseInt(param(query, "n")), body); break;
+            case "/api/photos": ok = Photos.command(body.trim()); break;
             case "/api/poweroff": ok = DeviceTools.powerOff(service); break;
             case "/api/projector": ok = service.apps().openProjectorSettings(); break;
             case "/api/tool": ok = DeviceTools.run(service, body.trim()); break;

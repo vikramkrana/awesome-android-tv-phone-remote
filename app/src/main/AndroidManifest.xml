@@ -49,6 +49,13 @@
         android:usesCleartextTraffic="true">
 
         <!-- The app's own screen: QR code, status, paired phones, and the few settings. -->
+        <!-- Photos from a phone, full screen (Photos.java). -->
+        <activity
+            android:name=".Photos"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
         <activity
             android:name=".InfoActivity"
             android:exported="true"
