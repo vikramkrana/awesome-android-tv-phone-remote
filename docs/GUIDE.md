@@ -134,6 +134,12 @@ browser has cleared its saved data.
 
 Rewind and forward, all apps and the device's settings moved to the Projector/TV and Apps tabs.
 
+**Phone-only apps (the phone Netflix app, Prime Video):** they are made for touch and ignore arrow keys. While one
+is in front, the remote (the phone's ring and the projector's own remote) draws a white ring around the item it is
+on: arrows move it row by row and poster by poster, scrolling the page or the row at its edge; OK opens the item. In a
+playing video with no controls showing, left and right skip 10 seconds and OK or up/down bring the controls up. The
+mouse mode of the projector's remote turns this off.
+
 <br clear="right">
 
 ### Touchpad

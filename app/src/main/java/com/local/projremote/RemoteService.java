@@ -183,6 +183,7 @@ public class RemoteService extends AccessibilityService {
         String pkg = event.getPackageName().toString();
         int type = event.getEventType();
         if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED && touchNav != null && !pkg.equals(getPackageName())) {
+            touchNav.onScrolled();
             main.removeCallbacks(touchRefresh);
             main.postDelayed(touchRefresh, 120);
         }
