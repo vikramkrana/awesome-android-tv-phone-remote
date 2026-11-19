@@ -92,6 +92,14 @@ public class RemoteService extends AccessibilityService {
         android.content.IntentFilter filter = new android.content.IntentFilter(Intent.ACTION_DREAMING_STARTED);
         filter.addAction(Intent.ACTION_DREAMING_STOPPED);
         registerReceiver(dreams, filter);
+        // Key presses from a developer's computer over adb, for testing (only the shell holds DUMP):
+        // adb shell am broadcast -a com.local.projremote.TEST_KEY --es key down
+        android.content.IntentFilter test = new android.content.IntentFilter("com.local.projremote.TEST_KEY");
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(testKeys, test, android.Manifest.permission.DUMP, null, RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(testKeys, test, android.Manifest.permission.DUMP, null);
+        }
         main.post(syncShown);
         main.post(bedtimeCheck);
         Photos.clearLeftovers(this);
@@ -223,6 +231,13 @@ public class RemoteService extends AccessibilityService {
         if (touchNav == null || pointerMode()) return false;
         return touchNav.onKey(event);
     }
+
+    private final android.content.BroadcastReceiver testKeys = new android.content.BroadcastReceiver() {
+        @Override public void onReceive(android.content.Context c, Intent i) {
+            String k = i.getStringExtra("key");
+            if (k != null) key(k);
+        }
+    };
 
     /** An arrow or OK from the phone while a touch-only app is in front. */
     private boolean touchKey(int direction, int globalAction) {
@@ -387,6 +402,7 @@ public class RemoteService extends AccessibilityService {
         if (peers != null) peers.stop();
         sleepAt = 0;
         try { unregisterReceiver(dreams); } catch (RuntimeException notRegistered) { }
+        try { unregisterReceiver(testKeys); } catch (RuntimeException notRegistered) { }
         // Nothing of this instance may run after it is switched off (a queued card refresh would fail).
         main.removeCallbacksAndMessages(null);
         // Switched off within minutes of power-on: that is not a person in Settings, it is firmware rewriting the
