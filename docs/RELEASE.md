@@ -9,6 +9,8 @@
    (`releases/latest/download/...`) keep working: `phone-remote-tv.apk` (the TV app) and
    `phone-remote-android.apk` (the phone app, `phone/build/outputs/apk/release/phone-release.apk`), and
    `phone-remote-tv-netflix.apk` (the TV app built from the `netflix-remote` branch).
+   The short links in the README (`is.gd/tvphoneremote`, `is.gd/tvphoneremotenf`) point to these
+   `releases/latest/download/` addresses, so they follow every release by themselves.
    **Check for updates** reads the latest release's tag, so tags must look like `v1.2`.
 4. Set `project_url` in `res/values/strings.xml` to the repository (`https://github.com/<you>/<repo>`); it shows in
    About and turns on the update check option.

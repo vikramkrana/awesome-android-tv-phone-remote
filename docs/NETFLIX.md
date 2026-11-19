@@ -98,7 +98,7 @@ Not yet working: choosing a profile picture in Switch Profiles (Netflix doesn't 
 New & Hot page (it reshuffles itself while previews play).
 
 **Download [phone-remote-tv-netflix.apk](https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv-netflix.apk)**
-and install it on the projector instead of `phone-remote-tv.apk` (over it is fine: pairing and settings stay). It
+(in the Downloader app: **`is.gd/tvphoneremotenf`**) and install it on the projector instead of `phone-remote-tv.apk` (over it is fine: pairing and settings stay). It
 is the same app with this mode added, and still experimental. Or build the branch yourself
 (`git checkout netflix-remote`, then see [Build](../README.md#build)). Other phone-only apps can be added to `touch_apps` in `app/src/main/res/values/config.xml`.
 

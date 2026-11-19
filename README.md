@@ -30,9 +30,9 @@ Download **[phone-remote-tv.apk](https://github.com/vikramkrana/awesome-android-
 - **USB stick (easiest):** copy the APK to a USB stick, plug it into the projector, open the projector's
   **File manager** (or *Files*, *Media center*), open the APK and choose **Install**. If it asks, allow installing
   apps from the file manager, then go back and press **Install** again.
-- **No computer, no stick:** install the free **Downloader** app (by AFTVnews) from the projector's app store, open
-  it and type this address, then press **Go** and **Install**:<br>
-  `https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv.apk`
+- **No computer, no stick:** install the free **Downloader** app (by AFTVnews) from the projector's app store.
+  Open it, type **`is.gd/tvphoneremote`** in the address box, select **Go**, then **Install** when the download
+  finishes. (The short link points to the latest release on this page.)
 - **From a computer with ADB:** `adb connect <projector-ip>:5555`, then `adb install phone-remote-tv.apk`.
 
 ### Step 2: Switch it on (once)
