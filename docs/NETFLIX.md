@@ -97,8 +97,10 @@ shows where you are and both remotes drive it:
 Not yet working: choosing a profile picture in Switch Profiles (Netflix doesn't expose them as buttons) and the
 New & Hot page (it reshuffles itself while previews play).
 
-Build that branch (`git checkout netflix-remote`, then see [Build](../README.md#build)) and install it over the
-normal app. Other phone-only apps can be added to `touch_apps` in `app/src/main/res/values/config.xml`.
+**Download [phone-remote-tv-netflix.apk](https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv-netflix.apk)**
+and install it on the projector instead of `phone-remote-tv.apk` (over it is fine: pairing and settings stay). It
+is the same app with this mode added, and still experimental. Or build the branch yourself
+(`git checkout netflix-remote`, then see [Build](../README.md#build)). Other phone-only apps can be added to `touch_apps` in `app/src/main/res/values/config.xml`.
 
 ## Summary
 
@@ -107,4 +109,4 @@ normal app. Other phone-only apps can be added to `touch_apps` in `app/src/main/
 | TV app: "not compatible", error -13 | Device not certified by Netflix | Use the phone app |
 | Phone app: "Something went wrong" at sign-in | reCAPTCHA in 9.60+, missing on TV Play services | Install 9.36.0 build 7 63488 |
 | Netflix updates itself and breaks again | Zeasn store's background installer | `appops … RUN_ANY_IN_BACKGROUND ignore` |
-| Remote does nothing inside Netflix | Phone app ignores arrow keys | `netflix-remote` branch build |
+| Remote does nothing inside Netflix | Phone app ignores arrow keys | `phone-remote-tv-netflix.apk` from the latest release |

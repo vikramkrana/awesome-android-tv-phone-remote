@@ -151,7 +151,7 @@ detection or by a setting, see [compatibility notes](docs/TROUBLESHOOTING.md#com
 
 **Netflix on a projector like this?** The TV app refuses to run (error -13) and the newest phone app can't sign in.
 [docs/NETFLIX.md](docs/NETFLIX.md) explains why and what works: the phone app 9.36, keeping the store from updating
-it, and a remote mode for it.
+it, and a remote mode for it ([phone-remote-tv-netflix.apk](https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv-netflix.apk), experimental).
 
 ## Documentation
 

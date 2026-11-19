@@ -7,7 +7,8 @@
    `dist/phone-remote-<version>.apk`, update the link in the README.
 3. Tag `v<version>` and attach the APKs to a GitHub release under fixed names, so the README's download buttons
    (`releases/latest/download/...`) keep working: `phone-remote-tv.apk` (the TV app) and
-   `phone-remote-android.apk` (the phone app, `phone/build/outputs/apk/release/phone-release.apk`).
+   `phone-remote-android.apk` (the phone app, `phone/build/outputs/apk/release/phone-release.apk`), and
+   `phone-remote-tv-netflix.apk` (the TV app built from the `netflix-remote` branch).
    **Check for updates** reads the latest release's tag, so tags must look like `v1.2`.
 4. Set `project_url` in `res/values/strings.xml` to the repository (`https://github.com/<you>/<repo>`); it shows in
    About and turns on the update check option.
