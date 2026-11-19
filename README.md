@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/icon.png" width="96" alt=""></p>
 
-# Phone Remote
+# Awesome Android TV Phone Remote
 
 **Your phone as the remote for an Android projector or TV.** D-pad, touchpad, volume, media keys, an app launcher,
 typing and voice search. Nothing to install on the phone: scan the QR code on the screen, type the PIN it shows,
@@ -10,6 +10,86 @@ Made for the budget Android projectors and TV boxes that Google's own remote app
 not certified Android TV devices. It needs no root and no Google services, and it never leaves your local network.
 
 <p align="center"><img src="docs/how-it-works.gif" width="820" alt="How it works: press Home, scan the QR, type the PIN, and the phone is the remote"></p>
+
+<p align="center">
+  <a href="https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv.apk"><img src="https://img.shields.io/badge/Download-for%20TV%20%2F%20projector-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Download for TV / projector"></a>
+  <a href="#iphone"><img src="https://img.shields.io/badge/iPhone-nothing%20to%20install-555?style=for-the-badge&logo=apple&logoColor=white" alt="iPhone: nothing to install"></a>
+  <a href="https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-android.apk"><img src="https://img.shields.io/badge/Android%20phone-app%20(optional)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android phone app (optional)"></a>
+</p>
+<p align="center"><a href="https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest">All downloads and release notes</a></p>
+
+## Get started
+
+You need: an Android projector, TV or TV box (Android 8 or newer), a phone, and both on the **same Wi-Fi**.
+It takes about five minutes, once.
+
+### Step 1: Put the app on the projector or TV
+
+Download **[phone-remote-tv.apk](https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv.apk)** (under 1 MB) and install it, whichever way is easiest for you:
+
+- **USB stick (easiest):** copy the APK to a USB stick, plug it into the projector, open the projector's
+  **File manager** (or *Files*, *Media center*), open the APK and choose **Install**. If it asks, allow installing
+  apps from the file manager, then go back and press **Install** again.
+- **No computer, no stick:** install the free **Downloader** app (by AFTVnews) from the projector's app store, open
+  it and type this address, then press **Go** and **Install**:<br>
+  `https://github.com/vikramkrana/awesome-android-tv-phone-remote/releases/latest/download/phone-remote-tv.apk`
+- **From a computer with ADB:** `adb connect <projector-ip>:5555`, then `adb install phone-remote-tv.apk`.
+
+### Step 2: Switch it on (once)
+
+1. On the projector, open **Phone Remote** from the apps list.
+2. The screen says the remote is off. Select **Turn on** and press OK.
+3. Read what it can do and choose **Agree and continue**. Android's **Accessibility** settings open.
+4. Choose **Phone Remote**, switch it **on**, and confirm with **Allow** or **OK**.
+5. Press **Back**: the app now shows a green **Ready**, and a QR code.
+
+> Switch greyed out ("Restricted setting")? Android 13+ does this for apps installed from a file. Open
+> **Settings → Apps → Phone Remote → ⋮ (top right) → Allow restricted settings**, then repeat step 4.
+>
+> Why accessibility? It is the part of Android that lets an app press Back, Home and the arrow keys for you. The app
+> uses it only for that: see [Security](docs/SECURITY.md).
+
+### Step 3: Pair your phone
+
+1. Press **Home** on the projector's remote. A small card with a **QR code** appears at the top right (it is also
+   on the Phone Remote app screen).
+2. Open the phone's **camera** and point it at the QR code. Tap the link that pops up.
+
+<a id="iphone"></a>**iPhone**
+
+3. Safari opens the pairing screen, and a **6-digit PIN** appears on the big screen. Type it and tap
+   **Pair with PIN**.
+4. On "You're connected": tap **Share** (the square with the arrow) → **Add to Home Screen** → **Add**. Now the
+   remote is an app icon on your iPhone. Open it from there; it asks for a PIN once more, then never again.
+5. Optional, **"Hey Siri, Projector"**: in the remote, **Settings → Set up "Hey Siri, Projector" → Add to Siri**,
+   then follow the [Siri steps](docs/GUIDE.md#voice-commands-and-siri).
+
+**Android phone**
+
+3. Chrome opens and offers two choices:
+   - **Download the app** (recommended): it comes from the projector itself, no store and no account. Open the
+     downloaded file, tap **Install** (allow installs from Chrome if asked), then open **Phone Remote**. A PIN appears
+     on the big screen: type it.
+   - **Use it in the browser:** a PIN appears on the big screen straight away: type it and tap **Pair with PIN**.
+
+That's it: the phone is the remote. Scan the same QR with every phone in the house (up to 5 by default, more in the
+app's settings).
+
+<p align="center"><img src="docs/screens/phone-done.png" width="190" alt="You're connected"></p>
+
+### How it works
+
+- The app on the projector runs a tiny web server on your home network and shows its address as the QR code.
+- Your phone opens that page: on iPhone it is a web app, on Android a small app or Chrome. Nothing goes through the
+  internet; there is no account and no cloud.
+- The PIN on the big screen proves you are in the room; after that the phone is remembered.
+- Each press on the phone is sent to the projector, which presses the key for you through Android's accessibility
+  service. That's also how it reads the app list, types into search boxes and controls what is playing.
+
+Something not working? See [Troubleshooting](docs/TROUBLESHOOTING.md). Every screen is explained in the
+[Guide](docs/GUIDE.md).
+
+## Screens
 
 ### On the phone
 
@@ -68,20 +148,6 @@ not certified Android TV devices. It needs no root and no Google services, and i
 Developed and tested on one device so far: a MediaTek-based 1080p projector running Android 13. Everything that
 was specific to it has been replaced by detection or by a setting, see
 [compatibility notes](docs/TROUBLESHOOTING.md#compatibility-notes).
-
-## Quick start
-
-0. **Get the APK:** [`dist/phone-remote-1.3.apk`](dist/phone-remote-1.3.apk) (about 420 KB with the Android app inside, debug-signed), or
-   [build it](#build).
-1. **Install** the APK on the projector or TV, either way:
-   - `adb install app-release.apk`, or
-   - copy it to a USB stick and open it with the device's file manager.
-2. **Open Phone Remote** on the device and choose **Turn on**, read what it allows, then switch **Phone Remote** on.
-   (With ADB you can do this from the computer instead, see the [guide](docs/GUIDE.md#2-switch-the-remote-on).)
-3. **Press Home.** Scan the QR card with the phone's camera, type the PIN from the big screen.
-4. On iPhone: **Share → Add to Home Screen** while "You're connected" is showing. On Android: tap **Download the app** on the "You're connected" screen (or Projector tab → **Get the Android app**). Chrome cannot add a shortcut to a page from a home device, so the projector hands out a small app instead (`phone/`, about 400 KB): full screen, finds the projector on the Wi-Fi by itself, stays paired when its address changes, uses the phone's voice typing, can scan the QR.
-
-The full walk-through, with a picture of every screen: **[docs/GUIDE.md](docs/GUIDE.md)**.
 
 ## Documentation
 
