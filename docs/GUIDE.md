@@ -78,6 +78,10 @@ The phone must be on the same Wi-Fi as the device.
 **2. Scan the QR code with the phone's camera** and open the link. The phone shows the pairing screen, and at the
 same moment a PIN appears on the big screen.
 
+**Android phones** first get a choice: **Download the app** (the device hands it over itself, no store or account)
+or **Use it in the browser**. After installing, open **Phone Remote**: it finds the device and a PIN appears on the
+big screen straight away. The browser choice goes on to the PIN as above, and is remembered.
+
 <img src="screens/tv-pin.png" width="760" alt="The PIN on the projector screen">
 
 **3. Type the six digits on the phone**, check the phone's name, tap **Pair with PIN**.
