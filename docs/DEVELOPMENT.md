@@ -44,7 +44,7 @@ The phone needs no app (Android phones can get an optional one, below). The devi
 - **Touch-only apps** (`touch_apps` in config.xml, e.g. Netflix's phone app): `TouchNav.java` filters the
   projector's own remote keys (`onKeyEvent`) and the phone's arrows, and draws a ring overlay over the tappable
   nodes. Things it relies on, found on Netflix: the accessibility cache goes stale (rows are reused silently), so
-  each read calls `clearCache()` (Android 14+); lists are told apart by their scroll actions and how their items sit,
+  each read calls `clearCache()` (Android 13+); lists are told apart by their scroll actions and how their items sit,
   not their shape; a sheet's full-screen backdrop hides what was drawn before it; a row slides only ~80 px per scroll,
   so `slide()` measures the first step and sends the rest; a video's controls fade after ~3 s, so the next key brings
   them back with the ring in place.

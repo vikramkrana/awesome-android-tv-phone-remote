@@ -523,7 +523,7 @@ final class TouchNav {
     private AccessibilityNodeInfo root() {
         // Android keeps a copy of the screen and updates it from the app's events; Netflix reuses list rows for other
         // titles without telling, so the copy goes stale (wrong titles in wrong places). A fresh read each time.
-        if (Build.VERSION.SDK_INT >= 34) service.clearCache();
+        if (Build.VERSION.SDK_INT >= 33) service.clearCache();
         // A sheet or dialog over the page (Netflix: profiles, seasons, audio and subtitles) is a window of its own on
         // top: that one, not the page under it.
         try {
