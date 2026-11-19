@@ -318,6 +318,20 @@
     </div>
   </section>
 
+  <!-- ===== Android, first visit: the app or the browser ===== -->
+  <section id="vGet" class="view hidden">
+    <div class="center">
+      <div class="halo up"><svg width="44" height="44" fill="none" stroke="#F4F2F8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><use href="#i-remote"/></svg></div>
+      <h1 class="up u2">Phone Remote</h1>
+      <p class="up u2">Get the app for this phone: it opens full screen, finds the {{kind}} by itself and stays paired. It comes straight from the {{kind}}, no store or account needed.</p>
+      <div class="up u3" style="width:100%;display:flex;flex-direction:column;gap:12px;margin-top:6px">
+        <a class="btn primary press" id="getApp" href="/android.apk" download="phone-remote.apk" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Download the app</a>
+        <button class="btn press" id="useWeb">Use it in the browser</button>
+      </div>
+      <p class="up u3" id="getSteps" style="font-size:13px;opacity:.7;margin-top:14px">When the download finishes, open it and tap <b>Install</b>. If Android asks, allow installs from Chrome. Then open <b>Phone Remote</b>: the {{kind}} shows a PIN to type in.</p>
+    </div>
+  </section>
+
   <!-- ===== Paired ===== -->
   <section id="vDone" class="view hidden">
     <div class="center">
@@ -702,7 +716,7 @@
   $("hapticBtn").onclick = () => { haptics = !haptics; store.set("haptics", haptics); drawHaptics(); if (!isIOS) haptic(); };
 
   // ---- views ---------------------------------------------------------------------------------------------------
-  const VIEWS = { pair: "vPair", done: "vDone", lost: "vLost", remote: "vRemote", apps: "vApps", proj: "vProj", settings: "vSettings" };
+  const VIEWS = { get: "vGet", pair: "vPair", done: "vDone", lost: "vLost", remote: "vRemote", apps: "vApps", proj: "vProj", settings: "vSettings" };
   let current = null;
   function show(name) {
     current = name;
@@ -1622,9 +1636,16 @@
       if (sharedLink) sendLink(sharedLink);
       return;
     }
+    // An Android phone in the browser, not yet paired: first the choice of the app (carried by the {{kind}}) or the
+    // browser. Inside the app, or once the browser is chosen: a PIN straight away.
+    if (androidTab && "{{apk}}" && !store.get("web", false)) {
+      show("get");
+      return;
+    }
     show("pair");
-    if (fromQr) requestPin();
+    if (fromQr || app) requestPin();
   }
+  $("useWeb").addEventListener("click", () => { store.set("web", true); show("pair"); requestPin(); });
   start();
   // Keeps the projector's "Connected now" and this page's "now playing" fresh while open.
   setInterval(() => { if (token && !document.hidden && online) refresh().catch(() => {}); }, 5000);

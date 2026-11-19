@@ -513,6 +513,15 @@ final class WebServer {
 
     private byte[] phoneApkBytes;
 
+    /** This build carries the phone app (not read in full just to ask). */
+    private boolean hasPhoneApk() {
+        try {
+            String[] names = service.getAssets().list("");
+            if (names != null) for (String n : names) if (n.equals("phone-remote.apk")) return true;
+        } catch (IOException ignored) { }
+        return false;
+    }
+
     private synchronized byte[] phoneApk() {
         if (phoneApkBytes != null) return phoneApkBytes;
         try (InputStream in = service.getAssets().open("phone-remote.apk")) {
@@ -543,6 +552,7 @@ final class WebServer {
                         .replace("{{project}}", projectLink(service.getString(R.string.project_url)))
                         .replace("{{id}}", RemoteService.deviceId(service))
                         .replace("{{kind}}", kind)
+                        .replace("{{apk}}", hasPhoneApk() ? "1" : "")
                         .replace("{{Kind}}", Character.toUpperCase(kind.charAt(0)) + kind.substring(1));
                 page = html.getBytes(StandardCharsets.UTF_8);
             }
