@@ -66,11 +66,16 @@ something else.
 - **Certified Android TV / Google TV:** Google's own remote apps work there, so you may not need this. Phone Remote
   runs on them too.
 
+## Netflix
+
+Netflix's TV app shows error -13 and its newest phone app fails at sign-in on uncertified projectors. What works,
+step by step: [NETFLIX.md](NETFLIX.md).
+
 ## Tested devices
 
 | Device | Android | Result |
 |---|---|---|
-| 1080p projector, MediaTek board (sold under several names) | 13 | Everything above |
+| Pixpaq Gold Ray-Mastered projector (MediaTek MT5873, Joyar/Siviton firmware, reports "ADT-3"; the same board is sold under several names) | 13 | Everything above. Netflix: see [NETFLIX.md](NETFLIX.md) |
 
 Tried it on something else? Please open an issue or a pull request with the model, Android version, and what did
 or did not work.

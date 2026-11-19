@@ -145,14 +145,19 @@ Something not working? See [Troubleshooting](docs/TROUBLESHOOTING.md). Every scr
 | Android 7 or older, Roku, webOS, Tizen | No. |
 | Phone | Any phone with a browser. Haptics on iPhone need iOS 17.4+ and Safari. |
 
-Developed and tested on one device so far: a MediaTek-based 1080p projector running Android 13. Everything that
-was specific to it has been replaced by detection or by a setting, see
-[compatibility notes](docs/TROUBLESHOOTING.md#compatibility-notes).
+Developed and tested on one device so far: the **Pixpaq Gold Ray-Mastered** projector (MediaTek MT5873, Android 13,
+Joyar/Siviton firmware; it reports itself as "ADT-3"). Everything that was specific to it has been replaced by
+detection or by a setting, see [compatibility notes](docs/TROUBLESHOOTING.md#compatibility-notes).
+
+**Netflix on a projector like this?** The TV app refuses to run (error -13) and the newest phone app can't sign in.
+[docs/NETFLIX.md](docs/NETFLIX.md) explains why and what works: the phone app 9.36, keeping the store from updating
+it, and a remote mode for it.
 
 ## Documentation
 
 - [Guide](docs/GUIDE.md): install, pair, and every screen explained
 - [Troubleshooting and compatibility](docs/TROUBLESHOOTING.md)
+- [Netflix on an uncertified projector](docs/NETFLIX.md): error -13, "Something went wrong" at sign-in, the remote inside Netflix
 - [Security](docs/SECURITY.md): what a paired phone can and cannot do, how pairing works
 - [Development](docs/DEVELOPMENT.md): how it is built, the HTTP API, settings for other devices, working on the page
   without a device
