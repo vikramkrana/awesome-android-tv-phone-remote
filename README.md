@@ -9,13 +9,26 @@ done. Works on iPhone and Android.
 Made for the budget Android projectors and TV boxes that Google's own remote apps cannot find, because they are
 not certified Android TV devices. It needs no root and no Google services, and it never leaves your local network.
 
+<p align="center"><img src="docs/how-it-works.gif" width="820" alt="How it works: press Home, scan the QR, type the PIN, and the phone is the remote"></p>
+
+### On the phone
+
 <p align="center">
-  <img src="docs/screens/phone-remote.png" width="200" alt="Remote">
-  <img src="docs/screens/phone-apps.png" width="200" alt="Apps">
-  <img src="docs/screens/phone-search.png" width="200" alt="Search YouTube">
-  <img src="docs/screens/phone-pin.png" width="200" alt="Pairing">
+  <img src="docs/screens/phone-remote.png" width="190" alt="Remote">
+  <img src="docs/screens/phone-apps.png" width="190" alt="Apps">
+  <img src="docs/screens/phone-search.png" width="190" alt="Search YouTube">
+  <img src="docs/screens/phone-projector.png" width="190" alt="Now playing, volume, photos, sleep timer">
 </p>
-<p align="center"><img src="docs/screens/tv-home.png" width="820" alt="The QR card on the projector's Home screen"></p>
+
+### On the projector or TV
+
+<p align="center">
+  <img src="docs/screens/tv-home.png" width="820" alt="The QR card on the projector's Home screen">
+</p>
+<p align="center">
+  <img src="docs/screens/tv-pin.png" width="405" alt="The pairing PIN on the big screen">
+  <img src="docs/screens/tv-app.png" width="405" alt="The app on the device: QR, paired phones, settings">
+</p>
 
 ## What it does
 

@@ -5,5 +5,5 @@
     <!-- Credit, shown on the device's screen and at the bottom of the phone's Settings. Forks: add your name after it. -->
     <string name="author">Vikram Rana</string>
     <!-- The project's home page, e.g. https://github.com/<you>/phone-remote. Empty hides the link. -->
-    <string name="project_url"></string>
+    <string name="project_url">https://github.com/vikramkrana/android-tv-phone-remote</string>
 </resources>
